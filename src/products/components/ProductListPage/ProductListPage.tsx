@@ -1,6 +1,5 @@
-import Button from "@material-ui/core/Button";
-import Card from "@material-ui/core/Card";
-import makeStyles from "@material-ui/core/styles/makeStyles";
+import { Button, Card } from "@material-ui/core";
+import Alert from "@saleor/components/Alert/Alert";
 import CardMenu from "@saleor/components/CardMenu";
 import ColumnPicker, {
   ColumnPickerChoice
@@ -8,13 +7,13 @@ import ColumnPicker, {
 import Container from "@saleor/components/Container";
 import FilterBar from "@saleor/components/FilterBar";
 import PageHeader from "@saleor/components/PageHeader";
+import { RefreshLimits_shop_limits } from "@saleor/components/Shop/types/RefreshLimits";
 import { ProductListColumns } from "@saleor/config";
 import { sectionNames } from "@saleor/intl";
-import {
-  GridAttributes_availableInGrid_edges_node,
-  GridAttributes_grid_edges_node
-} from "@saleor/products/types/GridAttributes";
+import { AvailableInGridAttributes_availableInGrid_edges_node } from "@saleor/products/types/AvailableInGridAttributes";
+import { GridAttributes_grid_edges_node } from "@saleor/products/types/GridAttributes";
 import { ProductList_products_edges_node } from "@saleor/products/types/ProductList";
+import { makeStyles } from "@saleor/theme";
 import {
   ChannelProps,
   FetchMoreProps,
@@ -23,6 +22,7 @@ import {
   PageListProps,
   SortPage
 } from "@saleor/types";
+import { hasLimits, isLimitReached } from "@saleor/utils/limits";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -42,10 +42,11 @@ export interface ProductListPageProps
     SortPage<ProductListUrlSortField>,
     ChannelProps {
   activeAttributeSortId: string;
-  availableInGridAttributes: GridAttributes_availableInGrid_edges_node[];
+  availableInGridAttributes: AvailableInGridAttributes_availableInGrid_edges_node[];
   channelsCount: number;
   currencySymbol: string;
   gridAttributes: GridAttributes_grid_edges_node[];
+  limits: RefreshLimits_shop_limits;
   totalGridAttributes: number;
   products: ProductList_products_edges_node[];
   onExport: () => void;
@@ -54,7 +55,12 @@ export interface ProductListPageProps
 const useStyles = makeStyles(
   theme => ({
     columnPicker: {
-      marginRight: theme.spacing(3)
+      marginRight: theme.spacing(3),
+      [theme.breakpoints.down("xs")]: {
+        "& > button": {
+          width: "100%"
+        }
+      }
     },
     settings: {
       marginRight: theme.spacing(2)
@@ -70,6 +76,7 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
     currentTab,
     defaultSettings,
     gridAttributes,
+    limits,
     availableInGridAttributes,
     filterOpts,
     hasMore,
@@ -83,6 +90,7 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
     onExport,
     onFetchMore,
     onFilterChange,
+    onFilterAttributeFocus,
     onSearchChange,
     onTabChange,
     onTabDelete,
@@ -120,9 +128,20 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
     }))
   ];
 
+  const limitReached = isLimitReached(limits, "productVariants");
+
   return (
     <Container>
-      <PageHeader title={intl.formatMessage(sectionNames.products)}>
+      <PageHeader
+        title={intl.formatMessage(sectionNames.products)}
+        limit={
+          hasLimits(limits, "productVariants") && {
+            data: limits,
+            key: "productVariants",
+            text: "SKUs used"
+          }
+        }
+      >
         <CardMenu
           className={classes.settings}
           menuItems={[
@@ -142,7 +161,6 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
           columns={columns}
           defaultColumns={defaultSettings.columns}
           hasMore={hasMore}
-          loading={loading}
           initialColumns={settings.columns}
           total={
             columns.length -
@@ -153,6 +171,7 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
           onSave={handleSave}
         />
         <Button
+          disabled={limitReached}
           onClick={onAdd}
           color="primary"
           variant="contained"
@@ -164,6 +183,15 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
           />
         </Button>
       </PageHeader>
+      <Alert
+        show={limitReached}
+        title={intl.formatMessage({
+          defaultMessage: "SKU limit reached",
+          description: "alert"
+        })}
+      >
+        <FormattedMessage defaultMessage="You have reached your SKU limit, you will be no longer able to add SKUs to your store. If you would like to up your limit, contact your administration staff about raising your limits." />
+      </Alert>
       <Card>
         <FilterBar
           currencySymbol={currencySymbol}
@@ -171,6 +199,7 @@ export const ProductListPage: React.FC<ProductListPageProps> = props => {
           initialSearch={initialSearch}
           onAll={onAll}
           onFilterChange={onFilterChange}
+          onFilterAttributeFocus={onFilterAttributeFocus}
           onSearchChange={onSearchChange}
           onTabChange={onTabChange}
           onTabDelete={onTabDelete}

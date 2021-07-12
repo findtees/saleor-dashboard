@@ -1,16 +1,17 @@
-import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import makeStyles from "@material-ui/core/styles/makeStyles";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableRow from "@material-ui/core/TableRow";
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
+import {
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  TableBody,
+  TableCell,
+  TableRow,
+  TextField,
+  Typography
+} from "@material-ui/core";
 import Checkbox from "@saleor/components/Checkbox";
 import ConfirmButton, {
   ConfirmButtonTransitionState
@@ -25,10 +26,11 @@ import useModalDialogOpen from "@saleor/hooks/useModalDialogOpen";
 import useSearchQuery from "@saleor/hooks/useSearchQuery";
 import { buttonMessages } from "@saleor/intl";
 import { maybe, renderCollection } from "@saleor/misc";
+import { makeStyles } from "@saleor/theme";
 import { FetchMoreProps } from "@saleor/types";
 import classNames from "classnames";
 import React from "react";
-import InfiniteScroll from "react-infinite-scroller";
+import InfiniteScroll from "react-infinite-scroll-component";
 import { FormattedMessage, useIntl } from "react-intl";
 
 const useStyles = makeStyles(
@@ -70,6 +72,8 @@ export interface AssignAttributeDialogProps extends FetchMoreProps {
   onSubmit: () => void;
   onToggle: (id: string) => void;
 }
+
+const scrollableTargetId = "assignAttributeScrollableDialog";
 
 const AssignAttributeDialog: React.FC<AssignAttributeDialogProps> = ({
   attributes,
@@ -124,19 +128,22 @@ const AssignAttributeDialog: React.FC<AssignAttributeDialogProps> = ({
           }}
         />
       </DialogContent>
-      <DialogContent className={classes.scrollArea} ref={anchor}>
+      <DialogContent
+        className={classes.scrollArea}
+        ref={anchor}
+        id={scrollableTargetId}
+      >
         <InfiniteScroll
-          pageStart={0}
-          loadMore={onFetchMore}
+          dataLength={attributes?.length}
+          next={onFetchMore}
           hasMore={hasMore}
-          useWindow={false}
+          scrollThreshold="100px"
           loader={
             <div className={classes.loadMoreLoaderContainer}>
               <CircularProgress size={16} />
             </div>
           }
-          threshold={100}
-          key="infinite-scroll"
+          scrollableTarget={scrollableTargetId}
         >
           <ResponsiveTable key="table">
             <TableBody>

@@ -1,30 +1,30 @@
-import HomePage from "../apiRequests/HomePage";
-class HomePageUtils {
-  homePage = new HomePage();
-  getOrdersReadyToFulfill(channelSlug) {
-    return this.homePage
-      .getOrdersWithStatus("READY_TO_FULFILL", channelSlug)
-      .then(resp => resp.body.data.orders.totalCount);
-  }
-  getOrdersReadyForCapture(channelSlug) {
-    return this.homePage
-      .getOrdersWithStatus("READY_TO_CAPTURE", channelSlug)
-      .then(resp => resp.body.data.orders.totalCount);
-  }
-  getProductsOutOfStock(channelSlug) {
-    return this.homePage
-      .getProductsOutOfStock(channelSlug)
-      .then(resp => resp.body.data.products.totalCount);
-  }
-  getSalesAmount(channelSlug) {
-    return this.homePage
-      .getSalesForChannel(channelSlug, "TODAY")
-      .then(resp => resp.body.data.ordersTotal.gross.amount);
-  }
-  getTodaysOrders(channelSlug) {
-    return this.homePage
-      .getOrdersForChannel(channelSlug, "TODAY")
-      .then(resp => resp.body.data.orders.totalCount);
-  }
+import * as homePage from "../apiRequests/HomePage";
+import { getDatePeriod } from "./misc";
+
+export function getOrdersReadyToFulfill(channelSlug) {
+  return homePage
+    .getOrdersWithStatus("READY_TO_FULFILL", channelSlug)
+    .its("body.data.orders.totalCount");
 }
-export default HomePageUtils;
+export function getOrdersReadyForCapture(channelSlug) {
+  return homePage
+    .getOrdersWithStatus("READY_TO_CAPTURE", channelSlug)
+    .its("body.data.orders.totalCount");
+}
+export function getProductsOutOfStock(channelSlug) {
+  return homePage
+    .getProductsOutOfStock(channelSlug)
+    .its("body.data.products.totalCount");
+}
+export function getSalesAmount(channelSlug) {
+  return homePage
+    .getSalesForChannel(channelSlug, "TODAY")
+    .its("body.data.ordersTotal.gross.amount");
+}
+export function getTodaysOrders(channelSlug) {
+  const today = getDatePeriod(1);
+
+  return homePage
+    .getOrdersForChannel(channelSlug, today)
+    .its("body.data.orders.totalCount");
+}

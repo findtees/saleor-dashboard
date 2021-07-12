@@ -1,22 +1,32 @@
-import ButtonBase from "@material-ui/core/ButtonBase";
-import ClickAwayListener from "@material-ui/core/ClickAwayListener";
-import Grow from "@material-ui/core/Grow";
-import Popper from "@material-ui/core/Popper";
-import { makeStyles } from "@material-ui/core/styles";
+import {
+  ButtonBase,
+  ClickAwayListener,
+  Grow,
+  Popper,
+  Typography
+} from "@material-ui/core";
 import { fade } from "@material-ui/core/styles/colorManipulator";
-import Typography from "@material-ui/core/Typography";
+import { makeStyles } from "@saleor/theme";
 import classNames from "classnames";
-import React from "react";
+import React, { useState } from "react";
 import { FormattedMessage } from "react-intl";
 
 import { FilterContent } from ".";
-import { IFilter, IFilterElement } from "./types";
+import {
+  FilterErrorMessages,
+  IFilter,
+  IFilterElement,
+  InvalidFilters
+} from "./types";
 import useFilter from "./useFilter";
+import { extractInvalidFilters } from "./utils";
 
 export interface FilterProps<TFilterKeys extends string = string> {
   currencySymbol?: string;
+  errorMessages?: FilterErrorMessages<TFilterKeys>;
   menu: IFilter<TFilterKeys>;
   onFilterAdd: (filter: Array<IFilterElement<string>>) => void;
+  onFilterAttributeFocus?: (id?: string) => void;
 }
 
 const useStyles = makeStyles(
@@ -87,14 +97,39 @@ const useStyles = makeStyles(
   { name: "Filter" }
 );
 const Filter: React.FC<FilterProps> = props => {
-  const { currencySymbol, menu, onFilterAdd } = props;
+  const {
+    currencySymbol,
+    menu,
+    onFilterAdd,
+    onFilterAttributeFocus,
+    errorMessages
+  } = props;
   const classes = useStyles(props);
 
   const anchor = React.useRef<HTMLDivElement>();
-  const [isFilterMenuOpened, setFilterMenuOpened] = React.useState(false);
+  const [isFilterMenuOpened, setFilterMenuOpened] = useState(false);
+  const [filterErrors, setFilterErrors] = useState<InvalidFilters<string>>({});
   const [data, dispatch, reset] = useFilter(menu);
 
   const isFilterActive = menu.some(filterElement => filterElement.active);
+
+  const handleSubmit = () => {
+    const invalidFilters = extractInvalidFilters(data, menu);
+
+    if (Object.keys(invalidFilters).length > 0) {
+      setFilterErrors(invalidFilters);
+      return;
+    }
+
+    setFilterErrors({});
+    onFilterAdd(data);
+    setFilterMenuOpened(false);
+  };
+
+  const handleClear = () => {
+    reset();
+    setFilterErrors({});
+  };
 
   return (
     <ClickAwayListener
@@ -103,6 +138,7 @@ const Filter: React.FC<FilterProps> = props => {
           setFilterMenuOpened(false);
         }
       }}
+      mouseEvent="onMouseUp"
     >
       <div ref={anchor}>
         <ButtonBase
@@ -111,6 +147,7 @@ const Filter: React.FC<FilterProps> = props => {
               isFilterMenuOpened || isFilterActive
           })}
           onClick={() => setFilterMenuOpened(!isFilterMenuOpened)}
+          data-test-id="show-filters-button"
         >
           <Typography className={classes.addFilterText}>
             <FormattedMessage defaultMessage="Filters" description="button" />
@@ -119,10 +156,17 @@ const Filter: React.FC<FilterProps> = props => {
             <>
               <span className={classes.separator} />
               <Typography className={classes.addFilterText}>
-                {menu.reduce(
-                  (acc, filterElement) => acc + (filterElement.active ? 1 : 0),
-                  0
-                )}
+                {menu.reduce((acc, filterElement) => {
+                  const dataFilterElement = data.find(
+                    ({ name }) => name === filterElement.name
+                  );
+
+                  if (!dataFilterElement) {
+                    return acc;
+                  }
+
+                  return acc + (dataFilterElement.active ? 1 : 0);
+                }, 0)}
               </Typography>
             </>
           )}
@@ -156,14 +200,15 @@ const Filter: React.FC<FilterProps> = props => {
               }}
             >
               <FilterContent
+                errorMessages={errorMessages}
+                errors={filterErrors}
+                dataStructure={menu}
                 currencySymbol={currencySymbol}
                 filters={data}
-                onClear={reset}
+                onClear={handleClear}
                 onFilterPropertyChange={dispatch}
-                onSubmit={() => {
-                  onFilterAdd(data);
-                  setFilterMenuOpened(false);
-                }}
+                onFilterAttributeFocus={onFilterAttributeFocus}
+                onSubmit={handleSubmit}
               />
             </Grow>
           )}

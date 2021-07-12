@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
 import { PageTranslationInput, LanguageCodeEnum } from "./../../types/globalTypes";
@@ -9,7 +10,7 @@ import { PageTranslationInput, LanguageCodeEnum } from "./../../types/globalType
 // ====================================================
 
 export interface UpdatePageTranslations_pageTranslate_errors {
-  __typename: "Error";
+  __typename: "TranslationError";
   field: string | null;
   message: string | null;
 }
@@ -35,7 +36,7 @@ export interface UpdatePageTranslations_pageTranslate_page_translation {
   content: any | null;
   seoDescription: string | null;
   seoTitle: string | null;
-  title: string;
+  title: string | null;
   language: UpdatePageTranslations_pageTranslate_page_translation_language;
 }
 

@@ -5,6 +5,7 @@ import urlJoin from "url-join";
 
 import { ConfirmButtonTransitionState } from "./components/ConfirmButton/ConfirmButton";
 import { StatusType } from "./components/StatusChip/types";
+import { StatusLabelProps } from "./components/StatusLabel";
 import { APP_MOUNT_URI } from "./config";
 import { AddressType, AddressTypeInput } from "./customers/types";
 import {
@@ -15,6 +16,7 @@ import {
 import {
   AddressInput,
   CountryCode,
+  DateRangeInput,
   OrderStatus,
   PaymentChargeStatusEnum
 } from "./types/globalTypes";
@@ -89,7 +91,10 @@ const paymentStatusMessages = defineMessages({
   }
 });
 
-export const transformPaymentStatus = (status: string, intl: IntlShape) => {
+export const transformPaymentStatus = (
+  status: string,
+  intl: IntlShape
+): { localized: string; status: StatusLabelProps["status"] } => {
   switch (status) {
     case PaymentChargeStatusEnum.PARTIALLY_CHARGED:
       return {
@@ -214,7 +219,7 @@ export const transformOrderStatus = (
   };
 };
 
-export const transformAddressToForm = (data: AddressType) => ({
+export const transformAddressToForm = (data?: AddressType) => ({
   city: data?.city || "",
   cityArea: data?.cityArea || "",
   companyName: data?.companyName || "",
@@ -245,7 +250,7 @@ export function only<T>(obj: T, key: keyof T): boolean {
   );
 }
 
-export function empty(obj: object): boolean {
+export function empty(obj: {}): boolean {
   return Object.keys(obj).every(key => obj[key] === undefined);
 }
 
@@ -376,10 +381,7 @@ export function generateCode(charNum: number) {
   return result;
 }
 
-export function findInEnum<TEnum extends object>(
-  needle: string,
-  haystack: TEnum
-) {
+export function findInEnum<TEnum extends {}>(needle: string, haystack: TEnum) {
   const match = Object.keys(haystack).find(key => key === needle);
   if (!!match) {
     return haystack[needle as keyof TEnum];
@@ -388,7 +390,7 @@ export function findInEnum<TEnum extends object>(
   throw new Error(`Key ${needle} not found in enum`);
 }
 
-export function findValueInEnum<TEnum extends object>(
+export function findValueInEnum<TEnum extends {}>(
   needle: string,
   haystack: TEnum
 ): TEnum[keyof TEnum] {
@@ -412,7 +414,7 @@ export function capitalize(s: string) {
   return s.charAt(0).toLocaleUpperCase() + s.slice(1);
 }
 
-export function transformFormToAddress<T>(
+export function transformFormToAddressInput<T>(
   address: T & AddressTypeInput
 ): T & AddressInput {
   return {
@@ -424,3 +426,32 @@ export function transformFormToAddress<T>(
 export function getStringOrPlaceholder(s: string | undefined): string {
   return s || "...";
 }
+
+export const getDatePeriod = (days: number): DateRangeInput => {
+  if (days < 1) {
+    return {};
+  }
+
+  const end = moment().startOf("day");
+  const start = end.subtract(days - 1);
+  const format = "YYYY-MM-DD";
+
+  return {
+    gte: start.format(format),
+    lte: end.format(format)
+  };
+};
+
+export const transformAddressToAddressInput = (data?: AddressType) => ({
+  city: data?.city || "",
+  cityArea: data?.cityArea || "",
+  companyName: data?.companyName || "",
+  country: findInEnum(data?.country?.code || "", CountryCode),
+  countryArea: data?.countryArea || "",
+  firstName: data?.firstName || "",
+  lastName: data?.lastName || "",
+  phone: data?.phone || "",
+  postalCode: data?.postalCode || "",
+  streetAddress1: data?.streetAddress1 || "",
+  streetAddress2: data?.streetAddress2 || ""
+});

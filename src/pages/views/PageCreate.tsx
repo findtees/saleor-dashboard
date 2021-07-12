@@ -5,25 +5,31 @@ import {
 } from "@saleor/attributes/utils/handlers";
 import { AttributeInput } from "@saleor/components/Attributes";
 import { WindowTitle } from "@saleor/components/WindowTitle";
-import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
+import {
+  DEFAULT_INITIAL_SEARCH_DATA,
+  VALUES_PAGINATE_BY
+} from "@saleor/config";
 import { useFileUploadMutation } from "@saleor/files/mutations";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useNotifier from "@saleor/hooks/useNotifier";
 import usePageSearch from "@saleor/searches/usePageSearch";
 import usePageTypeSearch from "@saleor/searches/usePageTypeSearch";
 import useProductSearch from "@saleor/searches/useProductSearch";
-import { getParsedDataForJsonStringField } from "@saleor/translations/utils";
+import createAttributeValueSearchHandler from "@saleor/utils/handlers/attributeValueSearchHandler";
 import createMetadataCreateHandler from "@saleor/utils/handlers/metadataCreateHandler";
+import { mapEdgesToItems } from "@saleor/utils/maps";
 import {
   useMetadataUpdate,
   usePrivateMetadataUpdate
 } from "@saleor/utils/metadata/updateMetadata";
+import { getParsedDataForJsonStringField } from "@saleor/utils/richText/misc";
 import React from "react";
 import { useIntl } from "react-intl";
 
 import PageDetailsPage from "../components/PageDetailsPage";
 import { PageSubmitData } from "../components/PageDetailsPage/form";
 import { TypedPageCreate } from "../mutations";
+import { usePageTypeQuery } from "../queries";
 import { PageCreate as PageCreateData } from "../types/PageCreate";
 import {
   pageCreateUrl,
@@ -44,6 +50,8 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
   const [updateMetadata] = useMetadataUpdate({});
   const [updatePrivateMetadata] = usePrivateMetadataUpdate({});
 
+  const [selectedPageTypeId, setSelectedPageTypeId] = React.useState<string>();
+
   const {
     loadMore: loadMorePageTypes,
     search: searchPageTypes,
@@ -51,7 +59,6 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
   } = usePageTypeSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA
   });
-
   const {
     loadMore: loadMorePages,
     search: searchPages,
@@ -59,7 +66,6 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
   } = usePageSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA
   });
-
   const {
     loadMore: loadMoreProducts,
     search: searchProducts,
@@ -67,6 +73,22 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
   } = useProductSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA
   });
+  const {
+    loadMore: loadMoreAttributeValues,
+    search: searchAttributeValues,
+    result: searchAttributeValuesOpts
+  } = createAttributeValueSearchHandler(DEFAULT_INITIAL_SEARCH_DATA);
+
+  const { data: selectedPageType } = usePageTypeQuery({
+    variables: {
+      id: selectedPageTypeId,
+      firstValues: VALUES_PAGINATE_BY
+    },
+    skip: !selectedPageTypeId
+  });
+
+  const attributeValues =
+    mapEdgesToItems(searchAttributeValuesOpts?.data?.attribute.choices) || [];
 
   const [uploadFile, uploadFileOpts] = useFileUploadMutation({});
 
@@ -95,17 +117,21 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
     loading: searchPageTypesOpts.loading,
     onFetchMore: loadMorePageTypes
   };
-
   const fetchMoreReferencePages = {
     hasMore: searchPagesOpts.data?.search?.pageInfo?.hasNextPage,
     loading: searchPagesOpts.loading,
     onFetchMore: loadMorePages
   };
-
   const fetchMoreReferenceProducts = {
     hasMore: searchProductsOpts.data?.search?.pageInfo?.hasNextPage,
     loading: searchProductsOpts.loading,
     onFetchMore: loadMoreProducts
+  };
+  const fetchMoreAttributeValues = {
+    hasMore: !!searchAttributeValuesOpts.data?.attribute?.choices?.pageInfo
+      ?.hasNextPage,
+    loading: !!searchAttributeValuesOpts.loading,
+    onFetchMore: loadMoreAttributeValues
   };
 
   return (
@@ -131,7 +157,7 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
                 }),
                 content: getParsedDataForJsonStringField(formData.content),
                 isPublished: formData.isPublished,
-                pageType: formData.pageType,
+                pageType: formData.pageType?.id,
                 publicationDate: formData.publicationDate,
                 seo: {
                   description: formData.seoDescription,
@@ -164,9 +190,10 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
               errors={pageCreateOpts.data?.pageCreate.errors || []}
               saveButtonBarState={pageCreateOpts.status}
               page={null}
-              pageTypes={searchPageTypesOpts.data?.search.edges.map(
-                edge => edge.node
-              )}
+              attributeValues={attributeValues}
+              pageTypes={
+                mapEdgesToItems(searchPageTypesOpts?.data?.search) || []
+              }
               onBack={() => navigate(pageListUrl())}
               onRemove={() => undefined}
               onSubmit={handleSubmit}
@@ -176,17 +203,21 @@ export const PageCreate: React.FC<PageCreateProps> = ({ params }) => {
                 params.action === "assign-attribute-value" && params.id
               }
               onAssignReferencesClick={handleAssignAttributeReferenceClick}
-              referencePages={searchPagesOpts.data?.search.edges.map(
-                edge => edge.node
-              )}
-              referenceProducts={searchProductsOpts.data?.search.edges.map(
-                edge => edge.node
-              )}
+              referencePages={
+                mapEdgesToItems(searchPagesOpts?.data?.search) || []
+              }
+              referenceProducts={
+                mapEdgesToItems(searchProductsOpts?.data?.search) || []
+              }
               fetchReferencePages={searchPages}
               fetchMoreReferencePages={fetchMoreReferencePages}
               fetchReferenceProducts={searchProducts}
               fetchMoreReferenceProducts={fetchMoreReferenceProducts}
+              fetchAttributeValues={searchAttributeValues}
+              fetchMoreAttributeValues={fetchMoreAttributeValues}
               onCloseDialog={() => navigate(pageCreateUrl())}
+              selectedPageType={selectedPageType?.pageType}
+              onSelectPageType={id => setSelectedPageTypeId(id)}
             />
           </>
         );

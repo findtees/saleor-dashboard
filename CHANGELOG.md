@@ -4,6 +4,7 @@ All notable, unreleased changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add embed plugin into editor-js - #3354 by @mociepka
 - Add Order Confirmation settings - #840 by @orzechdev and @mmarkusik
 - Add Page Types - #807 by @orzechdev
 - Add shipping methods to translation section - #864 by @marekchoinski
@@ -19,9 +20,51 @@ All notable, unreleased changes to this project will be documented in this file.
 - Drop descriptionJson and contentJson fields - #950 by @jwm0
 - Add error tracking with Sentry adapter - #956 by @jwm0
 - Add OAuth2 login with OpenID support - #963 by @orzechdev
+- Add order and order line discounts and modal - #978 by @mmarkusik
 - Fix no channels crash - #984 by @dominik-zeglen
 - Update webhooks - #982 by @piotrgrundas
 - Fix trigger form change when collections are being added to list of product collections - #987 by @gax97
+- Add product variant webhooks - #1006 by @piotrgrundas
+- Use default sort for search products list - #997 by @orzechdev
+- Add text attribute input - #1023 by @piotrgrundas
+- Update CollectionBulkDelete error type - #1030 by @d-wysocki
+- Remove mailing settings - #1027 by @dominik-zeglen
+- Update schema to contain email plugin changes - #1029 by @dominik-zeglen
+- Fix creating shipping voucher - #1031 by @orzechdev
+- Unconfirmed order manipulation - #967 by @tomaszszymanski129
+- Add multiline field plugins - #974 by @dominik-zeglen
+- Handle limit reached error - #990 by @dominik-zeglen
+- Display Cloud limits - #1004 by @dominik-zeglen
+- Introducing numeric attributes - #1065 by @piotrgrundas
+- Add shipping method description - #1058 by @jwm0
+- Fix voucher and sales sorting errors - #1063 by @orzechdev
+- Fix custom currency formatting - #1067 by @orzechdev
+- Fixes - #1077 by @piotrgrundas:
+  - rich text field updates,
+  - multiselect empty chip upon creation of a product/variant,
+  - useFormset.setItemValue wrong updates,
+- Drop deprecated fields - #1071 by @jwm0
+- Add service worker - #1073 by @dominik-zeglen
+- Choosing user shipping and billing addresses for draft order - #1082 by @orzechdev
+- Fix EditorJS inline formatting - #1096 by @orzechdev
+- Add pagination on attribute values - #1112 by @orzechdev
+- Paginate attribute values in filters - #1152 by @orzechdev
+- Fix attribute values input display - #1156 by @orzechdev
+- Fix product type translations - #1163 by @orzechdev
+- Support staff only voucher - #1174 by @orzechdev
+- Fix label names in reference attributes - #1184 by @orzechdev
+- Fix failing product update with file attribute - #1190 by @orzechdev
+- Fix breaking select popups in filters - #1193 by @orzechdev
+- Create channel filters in product, sales and voucher lists - #1187 by @jwm0
+- Add generic filter validation - #1187 by @jwm0
+- Fix duplicated labels in column picker - #1197 by @orzechdev
+- Fix forbidden null sending as attribute value - #1201 by @orzechdev
+- Fix huge payload issue for plugins view - #1203 by @kamilpastuszka
+- Fix missing call for update metadata mutation - #1207 by @orzechdev
+- Disable next step when no value selected in variant selector - #1218 by @orzechdev
+- Fix order links on home page - #1219 by @jwm0
+- Fix huge payload issue for plugins view - #1203 by @kamilpastuszka
+- Fix content type validation in create page view - #1205 by @orzechdev
 
 # 2.11.1
 
@@ -138,6 +181,7 @@ All notable, unreleased changes to this project will be documented in this file.
 - Update product stock management to newest design - #515 by @dominik-zeglen
 - Handle untracked products - #523 by @dominik-zeglen
 - Display correct error if there were no graphql errors - #525 by @dominik-zeglen
+- Add boolean attributes - #1157 by @piotrgrundas
 
 ## 2.0.0
 

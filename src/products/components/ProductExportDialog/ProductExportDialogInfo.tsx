@@ -1,11 +1,14 @@
-import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import makeStyles from "@material-ui/core/styles/makeStyles";
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
+import {
+  Button,
+  CircularProgress,
+  FormControlLabel,
+  TextField,
+  Typography
+} from "@material-ui/core";
 import Accordion, { AccordionProps } from "@saleor/components/Accordion";
-import ChannelsAvailabilityContent from "@saleor/components/ChannelsAvailabilityContent";
+import { useChannelsSearch } from "@saleor/components/ChannelsAvailabilityDialog/utils";
+import ChannelsAvailabilityDialogChannelsList from "@saleor/components/ChannelsAvailabilityDialogChannelsList";
+import ChannelsAvailabilityDialogContentWrapper from "@saleor/components/ChannelsAvailabilityDialogWrapper";
 import Checkbox from "@saleor/components/Checkbox";
 import Chip from "@saleor/components/Chip";
 import Hr from "@saleor/components/Hr";
@@ -14,6 +17,7 @@ import { ChannelFragment } from "@saleor/fragments/types/ChannelFragment";
 import { ChangeEvent, FormChange } from "@saleor/hooks/useForm";
 import useSearchQuery from "@saleor/hooks/useSearchQuery";
 import { sectionNames } from "@saleor/intl";
+import { makeStyles } from "@saleor/theme";
 import { FetchMoreProps } from "@saleor/types";
 import {
   ExportProductsInput,
@@ -243,6 +247,11 @@ const ProductExportDialogInfo: React.FC<ProductExportDialogInfoProps> = ({
   const intl = useIntl();
   const [query, onQueryChange] = useSearchQuery(onFetch);
   const getFieldLabel = useProductExportFieldMessages();
+  const {
+    query: channelsQuery,
+    onQueryChange: onChannelsQueryChange,
+    filteredChannels
+  } = useChannelsSearch(channels);
 
   const handleFieldChange = (event: ChangeEvent) =>
     onChange({
@@ -283,6 +292,9 @@ const ProductExportDialogInfo: React.FC<ProductExportDialogInfoProps> = ({
   const selectedAllInventoryFields =
     selectedInventoryFields.length === inventoryFields.length;
 
+  const handleSelectAllChannels = () =>
+    onSelectAllChannels(channels, channels.length);
+
   return (
     <>
       <Typography className={classes.dialogLabel}>
@@ -321,19 +333,21 @@ const ProductExportDialogInfo: React.FC<ProductExportDialogInfoProps> = ({
         }
         data-test="channels"
       >
-        <ChannelsAvailabilityContent
-          channels={channels}
-          disabled={loading}
-          selected={selectedChannels?.length}
-          toggleAllText={intl.formatMessage({
-            defaultMessage: "Add all channels"
-          })}
-          isSelected={option =>
-            !!selectedChannels.find(channel => channel.id === option.id)
-          }
-          onChange={onChannelSelect}
-          toggleAll={onSelectAllChannels}
-        />
+        <ChannelsAvailabilityDialogContentWrapper
+          hasAnyChannelsToDisplay={!!channels.length}
+          hasAllSelected={selectedChannels.length === channels.length}
+          query={channelsQuery}
+          onQueryChange={onChannelsQueryChange}
+          toggleAll={handleSelectAllChannels}
+        >
+          <ChannelsAvailabilityDialogChannelsList
+            channels={filteredChannels}
+            isChannelSelected={option =>
+              !!selectedChannels.find(channel => channel.id === option.id)
+            }
+            onChange={onChannelSelect}
+          />
+        </ChannelsAvailabilityDialogContentWrapper>
       </Accordion>
       <FieldAccordion
         className={classes.accordion}
@@ -579,8 +593,8 @@ const ProductExportDialogInfo: React.FC<ProductExportDialogInfoProps> = ({
         fields={[
           ProductFieldEnum.DESCRIPTION,
           ProductFieldEnum.NAME,
-          ProductFieldEnum.PRODUCT_IMAGES,
-          ProductFieldEnum.VARIANT_IMAGES
+          ProductFieldEnum.PRODUCT_MEDIA,
+          ProductFieldEnum.VARIANT_MEDIA
         ]}
         onChange={handleFieldChange}
         onToggleAll={handleToggleAllFields}

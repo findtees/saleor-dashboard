@@ -1,6 +1,4 @@
-import Menu from "@material-ui/core/Menu";
-import MenuItem from "@material-ui/core/MenuItem";
-import Typography from "@material-ui/core/Typography";
+import { Menu, MenuItem, Typography } from "@material-ui/core";
 import { CollectionList_collections_edges_node_channelListings } from "@saleor/collections/types/CollectionList";
 import Hr from "@saleor/components/Hr";
 import StatusLabel from "@saleor/components/StatusLabel";
@@ -18,7 +16,7 @@ type Channels = Pick<
 export interface ChannelsAvailabilityDropdownProps {
   allChannelsCount: number;
   channels: Channels[];
-  currentChannel: Channels;
+  showStatus?: boolean;
 }
 
 const isActive = (channelData: Channels) => channelData?.isPublished;
@@ -26,7 +24,7 @@ const isActive = (channelData: Channels) => channelData?.isPublished;
 export const ChannelsAvailabilityDropdown: React.FC<ChannelsAvailabilityDropdownProps> = ({
   allChannelsCount,
   channels,
-  currentChannel
+  showStatus = false
 }) => {
   const intl = useIntl();
   const classes = useStyles({});
@@ -34,8 +32,12 @@ export const ChannelsAvailabilityDropdown: React.FC<ChannelsAvailabilityDropdown
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleClick = event => setAnchorEl(event.currentTarget);
-
   const handleClose = () => setAnchorEl(null);
+  const activeInAllChannels = React.useMemo(
+    () => showStatus && channels.every(isActive),
+    [channels, showStatus]
+  );
+
   return (
     <div onClick={e => e.stopPropagation()}>
       <div
@@ -47,7 +49,7 @@ export const ChannelsAvailabilityDropdown: React.FC<ChannelsAvailabilityDropdown
         <StatusLabel
           label={intl.formatMessage(
             {
-              defaultMessage: "Available in {count}/{allCount}",
+              defaultMessage: "{count}/{allCount} channels",
               description: "product status title"
             },
             {
@@ -55,7 +57,9 @@ export const ChannelsAvailabilityDropdown: React.FC<ChannelsAvailabilityDropdown
               count: channels.length
             }
           )}
-          status={isActive(currentChannel) ? "success" : "error"}
+          status={
+            showStatus ? (activeInAllChannels ? "success" : "error") : undefined
+          }
         />
       </div>
       <Menu

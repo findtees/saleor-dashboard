@@ -1,11 +1,14 @@
-import FormControl from "@material-ui/core/FormControl";
-import FormHelperText from "@material-ui/core/FormHelperText";
+import {
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  OutlinedInput,
+  Select
+} from "@material-ui/core";
 import { InputProps } from "@material-ui/core/Input";
-import InputLabel from "@material-ui/core/InputLabel";
-import MenuItem from "@material-ui/core/MenuItem";
-import OutlinedInput from "@material-ui/core/OutlinedInput";
-import Select, { SelectProps } from "@material-ui/core/Select";
-import { makeStyles } from "@material-ui/core/styles";
+import { SelectProps } from "@material-ui/core/Select";
+import { makeStyles } from "@saleor/theme";
 import classNames from "classnames";
 import React from "react";
 import { FormattedMessage } from "react-intl";
@@ -28,9 +31,9 @@ const useStyles = makeStyles(
   { name: "SingleSelectField" }
 );
 
-export interface Choice {
-  value: string;
-  label: string | React.ReactNode;
+export interface Choice<T = string, L = string | React.ReactNode> {
+  value: T;
+  label: L;
 }
 
 export type Choices = Choice[];
@@ -40,8 +43,8 @@ interface SingleSelectFieldProps {
   className?: string;
   disabled?: boolean;
   error?: boolean;
-  hint?: string;
-  label?: string;
+  hint?: string | React.ReactNode;
+  label?: string | React.ReactNode;
   name?: string;
   selectProps?: SelectProps;
   placeholder?: string;

@@ -28,7 +28,8 @@ export enum ProductListUrlFiltersEnum {
   priceTo = "priceTo",
   status = "status",
   stockStatus = "stockStatus",
-  query = "query"
+  query = "query",
+  channel = "channel"
 }
 export enum ProductListUrlFiltersWithMultipleValues {
   categories = "categories",
@@ -48,7 +49,8 @@ export enum ProductListUrlSortField {
   name = "name",
   productType = "productType",
   status = "status",
-  price = "price"
+  price = "price",
+  rank = "rank"
 }
 export type ProductListUrlSort = Sort<ProductListUrlSortField>;
 export interface ProductListUrlQueryParams

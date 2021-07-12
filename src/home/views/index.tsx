@@ -2,9 +2,10 @@ import { channelsListUrl } from "@saleor/channels/urls";
 import useAppChannel from "@saleor/components/AppLayout/AppChannelContext";
 import useNavigator from "@saleor/hooks/useNavigator";
 import useUser from "@saleor/hooks/useUser";
+import { mapEdgesToItems } from "@saleor/utils/maps";
 import React from "react";
 
-import { getUserName } from "../../misc";
+import { getDatePeriod, getUserName } from "../../misc";
 import { orderListUrl } from "../../orders/urls";
 import { productListUrl, productVariantEditUrl } from "../../products/urls";
 import { OrderStatusFilter, StockAvailability } from "../../types/globalTypes";
@@ -21,15 +22,15 @@ const HomeSection = () => {
   const { data } = useHomePage({
     displayLoader: true,
     skip: noChannel,
-    variables: { channel: channel?.slug }
+    variables: { channel: channel?.slug, datePeriod: getDatePeriod(1) }
   });
 
   return (
     <HomePage
-      activities={data?.activities.edges.map(edge => edge.node).reverse()}
-      orders={data?.ordersToday.totalCount}
-      sales={data?.salesToday.gross}
-      topProducts={data?.productTopToday.edges.map(edge => edge.node)}
+      activities={mapEdgesToItems(data?.activities)?.reverse()}
+      orders={data?.ordersToday?.totalCount}
+      sales={data?.salesToday?.gross}
+      topProducts={mapEdgesToItems(data?.productTopToday)}
       onProductClick={(productId, variantId) =>
         navigate(productVariantEditUrl(productId, variantId))
       }
@@ -39,26 +40,29 @@ const HomeSection = () => {
       onOrdersToCaptureClick={() =>
         navigate(
           orderListUrl({
-            status: [OrderStatusFilter.READY_TO_CAPTURE]
+            status: [OrderStatusFilter.READY_TO_CAPTURE],
+            channel: [channel?.id]
           })
         )
       }
       onOrdersToFulfillClick={() =>
         navigate(
           orderListUrl({
-            status: [OrderStatusFilter.READY_TO_FULFILL]
+            status: [OrderStatusFilter.READY_TO_FULFILL],
+            channel: [channel?.id]
           })
         )
       }
       onProductsOutOfStockClick={() =>
         navigate(
           productListUrl({
-            stockStatus: StockAvailability.OUT_OF_STOCK
+            stockStatus: StockAvailability.OUT_OF_STOCK,
+            channel: channel?.slug
           })
         )
       }
-      ordersToCapture={data?.ordersToCapture.totalCount}
-      ordersToFulfill={data?.ordersToFulfill.totalCount}
+      ordersToCapture={data?.ordersToCapture?.totalCount}
+      ordersToFulfill={data?.ordersToFulfill?.totalCount}
       productsOutOfStock={data?.productsOutOfStock.totalCount}
       userName={getUserName(user, true)}
       userPermissions={user?.userPermissions}

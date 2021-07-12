@@ -1,14 +1,15 @@
-import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import { makeStyles } from "@material-ui/core/styles";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableRow from "@material-ui/core/TableRow";
-import TextField from "@material-ui/core/TextField";
+import {
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TableBody,
+  TableCell,
+  TableRow,
+  TextField
+} from "@material-ui/core";
 import Checkbox from "@saleor/components/Checkbox";
 import ConfirmButton, {
   ConfirmButtonTransitionState
@@ -21,10 +22,11 @@ import { buttonMessages } from "@saleor/intl";
 import { renderCollection } from "@saleor/misc";
 import { SearchProducts_search_edges_node } from "@saleor/searches/types/SearchProducts";
 import { ShippingPriceExcludeProduct } from "@saleor/shipping/types/ShippingPriceExcludeProduct";
+import { makeStyles } from "@saleor/theme";
 import { FetchMoreProps } from "@saleor/types";
 import React from "react";
 import { MutationFetchResult } from "react-apollo";
-import InfiniteScroll from "react-infinite-scroller";
+import InfiniteScroll from "react-infinite-scroll-component";
 import { FormattedMessage, useIntl } from "react-intl";
 
 const useStyles = makeStyles(
@@ -86,6 +88,8 @@ const handleProductAssign = (
     setSelectedProducts([...selectedProducts, product]);
   }
 };
+
+const scrollableTargetId = "shippingMethodProductsAddScrollableDialog";
 
 const ShippingMethodProductsAddDialog: React.FC<ShippingMethodProductsAddDialogProps> = props => {
   const {
@@ -152,18 +156,18 @@ const ShippingMethodProductsAddDialog: React.FC<ShippingMethodProductsAddDialogP
           }}
         />
       </DialogContent>
-      <DialogContent className={classes.content}>
+      <DialogContent className={classes.content} id={scrollableTargetId}>
         <InfiniteScroll
-          pageStart={0}
-          loadMore={onFetchMore}
+          dataLength={products?.length}
+          next={onFetchMore}
           hasMore={hasMore}
-          useWindow={false}
+          scrollThreshold="100px"
           loader={
             <div key="loader" className={classes.loadMoreLoaderContainer}>
               <CircularProgress size={16} />
             </div>
           }
-          threshold={10}
+          scrollableTarget={scrollableTargetId}
         >
           <ResponsiveTable key="table">
             <TableBody>

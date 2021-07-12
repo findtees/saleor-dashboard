@@ -20,7 +20,6 @@ export const channelFragment = gql`
 
 export const channelDetailsFragment = gql`
   ${channelFragment}
-
   fragment ChannelDetailsFragment on Channel {
     ...ChannelFragment
     hasOrders

@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
 import { ProductFilterInput, ProductOrder } from "./../../types/globalTypes";
@@ -89,6 +90,8 @@ export interface ProductList_products_edges_node_attributes_values {
   slug: string | null;
   file: ProductList_products_edges_node_attributes_values_file | null;
   reference: string | null;
+  richText: any | null;
+  boolean: boolean | null;
 }
 
 export interface ProductList_products_edges_node_attributes {
@@ -137,5 +140,6 @@ export interface ProductListVariables {
   last?: number | null;
   before?: string | null;
   filter?: ProductFilterInput | null;
+  channel?: string | null;
   sort?: ProductOrder | null;
 }

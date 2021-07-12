@@ -1,6 +1,4 @@
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
-import Typography from "@material-ui/core/Typography";
+import { Card, CardContent, Typography } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import ControlledCheckbox from "@saleor/components/ControlledCheckbox";
 import Hr from "@saleor/components/Hr";
@@ -92,6 +90,34 @@ const WebhookEvents: React.FC<WebhookEventsProps> = ({
       defaultMessage: "Page updated",
       description: "event"
     }),
+    [WebhookEventTypeEnum.PAYMENT_AUTHORIZE]: intl.formatMessage({
+      defaultMessage: "Authorize payment",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PAYMENT_CAPTURE]: intl.formatMessage({
+      defaultMessage: "Capture payment",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PAYMENT_CONFIRM]: intl.formatMessage({
+      defaultMessage: "Confirm payment",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PAYMENT_LIST_GATEWAYS]: intl.formatMessage({
+      defaultMessage: "List payment gateways",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PAYMENT_PROCESS]: intl.formatMessage({
+      defaultMessage: "Process payment",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PAYMENT_REFUND]: intl.formatMessage({
+      defaultMessage: "Refund payment",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PAYMENT_VOID]: intl.formatMessage({
+      defaultMessage: "Void payment",
+      description: "event"
+    }),
     [WebhookEventTypeEnum.PRODUCT_CREATED]: intl.formatMessage({
       defaultMessage: "Product created",
       description: "event"
@@ -102,6 +128,18 @@ const WebhookEvents: React.FC<WebhookEventsProps> = ({
     }),
     [WebhookEventTypeEnum.PRODUCT_DELETED]: intl.formatMessage({
       defaultMessage: "Product deleted",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PRODUCT_VARIANT_CREATED]: intl.formatMessage({
+      defaultMessage: "Product variant created",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PRODUCT_VARIANT_UPDATED]: intl.formatMessage({
+      defaultMessage: "Product variant updated",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.PRODUCT_VARIANT_DELETED]: intl.formatMessage({
+      defaultMessage: "Product variant deleted",
       description: "event"
     }),
     [WebhookEventTypeEnum.FULFILLMENT_CREATED]: intl.formatMessage({
@@ -130,6 +168,10 @@ const WebhookEvents: React.FC<WebhookEventsProps> = ({
     }),
     [WebhookEventTypeEnum.PAGE_DELETED]: intl.formatMessage({
       defaultMessage: "Page deleted",
+      description: "event"
+    }),
+    [WebhookEventTypeEnum.NOTIFY_USER]: intl.formatMessage({
+      defaultMessage: "User notified",
       description: "event"
     })
   };

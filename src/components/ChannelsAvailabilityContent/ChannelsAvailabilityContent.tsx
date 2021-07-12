@@ -1,5 +1,4 @@
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
+import { TextField, Typography } from "@material-ui/core";
 import { Channel } from "@saleor/channels/utils";
 import { ControlledCheckbox } from "@saleor/components/ControlledCheckbox";
 import Hr from "@saleor/components/Hr";
@@ -83,7 +82,11 @@ export const ChannelsAvailabilityContent: React.FC<ChannelsAvailabilityContentPr
         >
           {filteredChannels?.length ? (
             filteredChannels.map(option => (
-              <div key={option.id} className={classes.option}>
+              <div
+                key={option.id}
+                className={classes.option}
+                data-test-id="channel-row"
+              >
                 <ControlledCheckbox
                   checked={isSelected(option)}
                   name={option.name}

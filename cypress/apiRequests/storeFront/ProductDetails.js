@@ -1,18 +1,71 @@
-class ProductDetails {
-  getProductDetails(productId, channelId) {
-    const query = `fragment BasicProductFields on Product {
+import { getValueWithDefault } from "../utils/Utils";
+
+export function getProductDetails(productId, channelId, auth = "token") {
+  const privateMetadataLine = getValueWithDefault(
+    auth === "auth",
+    `privateMetadata{key value}`
+  );
+  const query = `fragment BasicProductFields on Product {
+    id
+    name
+    attributes{
+      attribute{
+        id
+        name
+      }
+    }
+    category{
       id
       name
     }
-    query ProductDetails{
-      product(id: "${productId}", channel: "${channelId}") {
-        ...BasicProductFields
-        isAvailable
-        isAvailableForPurchase
-        availableForPurchase
-      }
-    }`;
-    return cy.sendRequestWithQuery(query, "token");
+    collections{
+      id
+      name
+    }
+    description
+    seoTitle
+    slug
+    seoDescription
+    rating
+    metadata{
+      key
+      value
+    }
+    ${privateMetadataLine}
+    productType{
+      id
+      name
+    }
   }
+  
+  fragment Price on TaxedMoney {
+    gross {
+      amount
+      currency
+    }
+  }
+  
+  fragment ProductVariantFields on ProductVariant {
+    id
+    sku
+    name
+    pricing {
+      price {
+        ...Price
+      }
+    }
+  }
+  
+  query ProductDetails{
+    product(id: "${productId}", channel: "${channelId}") {
+      ...BasicProductFields
+      variants {
+        ...ProductVariantFields
+      }
+      isAvailable
+      isAvailableForPurchase
+      availableForPurchase
+    }
+  }`;
+  return cy.sendRequestWithQuery(query, auth);
 }
-export default ProductDetails;

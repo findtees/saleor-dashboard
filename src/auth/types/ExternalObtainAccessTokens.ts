@@ -1,8 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
-import { PermissionEnum, AccountErrorCode } from "./../../types/globalTypes";
+import { PermissionEnum, AccountErrorCode, AddressTypeEnum } from "./../../types/globalTypes";
 
 // ====================================================
 // GraphQL mutation operation: ExternalObtainAccessTokens
@@ -34,6 +35,7 @@ export interface ExternalObtainAccessTokens_externalObtainAccessTokens_errors {
   __typename: "AccountError";
   code: AccountErrorCode;
   field: string | null;
+  addressType: AddressTypeEnum | null;
 }
 
 export interface ExternalObtainAccessTokens_externalObtainAccessTokens {

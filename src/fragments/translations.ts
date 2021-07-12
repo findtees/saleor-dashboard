@@ -1,5 +1,7 @@
 import gql from "graphql-tag";
 
+import { pageInfoFragment } from "./pageInfo";
+
 export const categoryTranslationFragment = gql`
   fragment CategoryTranslationFragment on CategoryTranslatableContent {
     translation(languageCode: $language) {
@@ -82,6 +84,7 @@ export const saleTranslationFragment = gql`
 `;
 export const voucherTranslationFragment = gql`
   fragment VoucherTranslationFragment on VoucherTranslatableContent {
+    name
     voucher {
       id
       name
@@ -98,11 +101,12 @@ export const voucherTranslationFragment = gql`
 `;
 export const shippingMethodTranslationFragment = gql`
   fragment ShippingMethodTranslationFragment on ShippingMethodTranslatableContent {
+    id
+    name
+    description
     shippingMethod {
       id
     }
-    id
-    name
     translation(languageCode: $language) {
       id
       language {
@@ -110,6 +114,7 @@ export const shippingMethodTranslationFragment = gql`
         language
       }
       name
+      description
     }
   }
 `;
@@ -158,6 +163,29 @@ export const pageTranslatableFragment = gql`
   }
 `;
 
+export const attributeChoicesTranslationFragment = gql`
+  ${pageInfoFragment}
+  fragment AttributeChoicesTranslationFragment on AttributeValueCountableConnection {
+    pageInfo {
+      ...PageInfoFragment
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        richText
+        inputType
+        translation(languageCode: $language) {
+          id
+          name
+          richText
+        }
+      }
+    }
+  }
+`;
+
 export const attributeTranslationFragment = gql`
   fragment AttributeTranslationFragment on AttributeTranslatableContent {
     translation(languageCode: $language) {
@@ -167,13 +195,29 @@ export const attributeTranslationFragment = gql`
     attribute {
       id
       name
-      values {
-        id
-        name
-        translation(languageCode: $language) {
-          id
-          name
-        }
+      inputType
+    }
+  }
+`;
+
+export const attributeTranslationDetailsFragment = gql`
+  ${attributeChoicesTranslationFragment}
+  fragment AttributeTranslationDetailsFragment on AttributeTranslatableContent {
+    translation(languageCode: $language) {
+      id
+      name
+    }
+    attribute {
+      id
+      name
+      inputType
+      choices(
+        first: $firstValues
+        after: $afterValues
+        last: $lastValues
+        before: $beforeValues
+      ) {
+        ...AttributeChoicesTranslationFragment
       }
     }
   }

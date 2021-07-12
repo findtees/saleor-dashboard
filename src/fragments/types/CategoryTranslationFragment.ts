@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
 // ====================================================
@@ -16,7 +17,7 @@ export interface CategoryTranslationFragment_translation {
   id: string;
   description: any | null;
   language: CategoryTranslationFragment_translation_language;
-  name: string;
+  name: string | null;
   seoDescription: string | null;
   seoTitle: string | null;
 }

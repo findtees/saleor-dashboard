@@ -1,7 +1,4 @@
-import Button from "@material-ui/core/Button";
-import Card from "@material-ui/core/Card";
-import CardActions from "@material-ui/core/CardActions";
-import CardContent from "@material-ui/core/CardContent";
+import { Button, Card, CardActions, CardContent } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import Form from "@saleor/components/Form";
 import Hr from "@saleor/components/Hr";
@@ -57,7 +54,7 @@ const ShippingWeightUnitForm: React.FC<ShippingWeightUnitFormProps> = ({
           </CardContent>
           <Hr />
           <CardActions>
-            <Button color="primary" onClick={submit}>
+            <Button color="primary" onClick={submit} data-test-id="saveUnit">
               <FormattedMessage {...buttonMessages.save} />
             </Button>
           </CardActions>

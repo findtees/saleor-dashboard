@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
 import { ShippingErrorCode, PostalCodeRuleInclusionTypeEnum, WeightUnitsEnum, ShippingMethodTypeEnum } from "./../../types/globalTypes";
@@ -109,6 +110,7 @@ export interface DeleteShippingRate_shippingPriceDelete_shippingZone_shippingMet
   minimumDeliveryDays: number | null;
   maximumDeliveryDays: number | null;
   name: string;
+  description: any | null;
   type: ShippingMethodTypeEnum | null;
   channelListings: DeleteShippingRate_shippingPriceDelete_shippingZone_shippingMethods_channelListings[] | null;
 }
@@ -129,7 +131,7 @@ export interface DeleteShippingRate_shippingPriceDelete_shippingZone {
   description: string | null;
   default: boolean;
   shippingMethods: (DeleteShippingRate_shippingPriceDelete_shippingZone_shippingMethods | null)[] | null;
-  warehouses: (DeleteShippingRate_shippingPriceDelete_shippingZone_warehouses | null)[] | null;
+  warehouses: DeleteShippingRate_shippingPriceDelete_shippingZone_warehouses[];
 }
 
 export interface DeleteShippingRate_shippingPriceDelete {

@@ -1,8 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
-import { AccountErrorCode, PermissionEnum } from "./../../types/globalTypes";
+import { AccountErrorCode, AddressTypeEnum, PermissionEnum } from "./../../types/globalTypes";
 
 // ====================================================
 // GraphQL mutation operation: SetPassword
@@ -12,6 +13,7 @@ export interface SetPassword_setPassword_errors {
   __typename: "AccountError";
   code: AccountErrorCode;
   field: string | null;
+  addressType: AddressTypeEnum | null;
 }
 
 export interface SetPassword_setPassword_user_userPermissions {

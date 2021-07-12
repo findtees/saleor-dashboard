@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
 import { SaleFilterInput, SaleSortingInput, SaleType } from "./../../types/globalTypes";
@@ -63,4 +64,5 @@ export interface SaleListVariables {
   last?: number | null;
   filter?: SaleFilterInput | null;
   sort?: SaleSortingInput | null;
+  channel?: string | null;
 }

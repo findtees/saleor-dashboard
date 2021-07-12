@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+// @generated
 // This file was automatically generated and should not be edited.
 
 import { PluginFilterInput, PluginSortingInput } from "./../../types/globalTypes";
@@ -8,12 +9,39 @@ import { PluginFilterInput, PluginSortingInput } from "./../../types/globalTypes
 // GraphQL query operation: Plugins
 // ====================================================
 
+export interface Plugins_plugins_edges_node_channelConfigurations_channel {
+  __typename: "Channel";
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface Plugins_plugins_edges_node_channelConfigurations {
+  __typename: "PluginConfiguration";
+  active: boolean;
+  channel: Plugins_plugins_edges_node_channelConfigurations_channel | null;
+}
+
+export interface Plugins_plugins_edges_node_globalConfiguration_channel {
+  __typename: "Channel";
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface Plugins_plugins_edges_node_globalConfiguration {
+  __typename: "PluginConfiguration";
+  active: boolean;
+  channel: Plugins_plugins_edges_node_globalConfiguration_channel | null;
+}
+
 export interface Plugins_plugins_edges_node {
   __typename: "Plugin";
   id: string;
   name: string;
   description: string;
-  active: boolean;
+  channelConfigurations: Plugins_plugins_edges_node_channelConfigurations[];
+  globalConfiguration: Plugins_plugins_edges_node_globalConfiguration | null;
 }
 
 export interface Plugins_plugins_edges {

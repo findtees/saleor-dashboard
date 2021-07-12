@@ -1,4 +1,4 @@
-import DialogContentText from "@material-ui/core/DialogContentText";
+import { DialogContentText } from "@material-ui/core";
 import { useAttributeValueDeleteMutation } from "@saleor/attributes/mutations";
 import {
   getAttributesAfterFileAttributesUpdate,
@@ -13,7 +13,10 @@ import {
 import ActionDialog from "@saleor/components/ActionDialog";
 import { AttributeInput } from "@saleor/components/Attributes";
 import { WindowTitle } from "@saleor/components/WindowTitle";
-import { DEFAULT_INITIAL_SEARCH_DATA } from "@saleor/config";
+import {
+  DEFAULT_INITIAL_SEARCH_DATA,
+  VALUES_PAGINATE_BY
+} from "@saleor/config";
 import { useFileUploadMutation } from "@saleor/files/mutations";
 import { AttributeErrorFragment } from "@saleor/fragments/types/AttributeErrorFragment";
 import { PageErrorFragment } from "@saleor/fragments/types/PageErrorFragment";
@@ -23,12 +26,14 @@ import useNotifier from "@saleor/hooks/useNotifier";
 import { commonMessages } from "@saleor/intl";
 import usePageSearch from "@saleor/searches/usePageSearch";
 import useProductSearch from "@saleor/searches/useProductSearch";
-import { getParsedDataForJsonStringField } from "@saleor/translations/utils";
+import createAttributeValueSearchHandler from "@saleor/utils/handlers/attributeValueSearchHandler";
 import createMetadataUpdateHandler from "@saleor/utils/handlers/metadataUpdateHandler";
+import { mapEdgesToItems } from "@saleor/utils/maps";
 import {
   useMetadataUpdate,
   usePrivateMetadataUpdate
 } from "@saleor/utils/metadata/updateMetadata";
+import { getParsedDataForJsonStringField } from "@saleor/utils/richText/misc";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -74,7 +79,8 @@ export const PageDetails: React.FC<PageDetailsProps> = ({ id, params }) => {
 
   const pageDetails = usePageDetailsQuery({
     variables: {
-      id
+      id,
+      firstValues: VALUES_PAGINATE_BY
     }
   });
 
@@ -131,7 +137,8 @@ export const PageDetails: React.FC<PageDetailsProps> = ({ id, params }) => {
     const updateResult = await pageUpdate({
       variables: {
         id,
-        input: createPageInput(data, updatedFileAttributes)
+        input: createPageInput(data, updatedFileAttributes),
+        firstValues: VALUES_PAGINATE_BY
       }
     });
 
@@ -159,7 +166,6 @@ export const PageDetails: React.FC<PageDetailsProps> = ({ id, params }) => {
   } = usePageSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA
   });
-
   const {
     loadMore: loadMoreProducts,
     search: searchProducts,
@@ -167,17 +173,30 @@ export const PageDetails: React.FC<PageDetailsProps> = ({ id, params }) => {
   } = useProductSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA
   });
+  const {
+    loadMore: loadMoreAttributeValues,
+    search: searchAttributeValues,
+    result: searchAttributeValuesOpts
+  } = createAttributeValueSearchHandler(DEFAULT_INITIAL_SEARCH_DATA);
+
+  const attributeValues =
+    mapEdgesToItems(searchAttributeValuesOpts?.data?.attribute.choices) || [];
 
   const fetchMoreReferencePages = {
     hasMore: searchPagesOpts.data?.search?.pageInfo?.hasNextPage,
     loading: searchPagesOpts.loading,
     onFetchMore: loadMorePages
   };
-
   const fetchMoreReferenceProducts = {
     hasMore: searchProductsOpts.data?.search?.pageInfo?.hasNextPage,
     loading: searchProductsOpts.loading,
     onFetchMore: loadMoreProducts
+  };
+  const fetchMoreAttributeValues = {
+    hasMore: !!searchAttributeValuesOpts.data?.attribute?.choices?.pageInfo
+      ?.hasNextPage,
+    loading: !!searchAttributeValuesOpts.loading,
+    onFetchMore: loadMoreAttributeValues
   };
 
   return (
@@ -193,6 +212,7 @@ export const PageDetails: React.FC<PageDetailsProps> = ({ id, params }) => {
         errors={pageUpdateOpts.data?.pageUpdate.errors || []}
         saveButtonBarState={pageUpdateOpts.status}
         page={pageDetails.data?.page}
+        attributeValues={attributeValues}
         onBack={() => navigate(pageListUrl())}
         onRemove={() =>
           navigate(
@@ -206,16 +226,16 @@ export const PageDetails: React.FC<PageDetailsProps> = ({ id, params }) => {
           params.action === "assign-attribute-value" && params.id
         }
         onAssignReferencesClick={handleAssignAttributeReferenceClick}
-        referencePages={searchPagesOpts.data?.search.edges.map(
-          edge => edge.node
-        )}
-        referenceProducts={searchProductsOpts.data?.search.edges.map(
-          edge => edge.node
-        )}
+        referencePages={mapEdgesToItems(searchPagesOpts?.data?.search) || []}
+        referenceProducts={
+          mapEdgesToItems(searchProductsOpts?.data?.search) || []
+        }
         fetchReferencePages={searchPages}
         fetchMoreReferencePages={fetchMoreReferencePages}
         fetchReferenceProducts={searchProducts}
         fetchMoreReferenceProducts={fetchMoreReferenceProducts}
+        fetchAttributeValues={searchAttributeValues}
+        fetchMoreAttributeValues={fetchMoreAttributeValues}
         onCloseDialog={() => navigate(pageUrl(id))}
       />
       <ActionDialog

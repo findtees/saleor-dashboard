@@ -1,8 +1,4 @@
-import { makeStyles } from "@material-ui/core/styles";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableFooter from "@material-ui/core/TableFooter";
-import TableRow from "@material-ui/core/TableRow";
+import { TableBody, TableCell, TableFooter, TableRow } from "@material-ui/core";
 import Checkbox from "@saleor/components/Checkbox";
 import Date from "@saleor/components/Date";
 import Money from "@saleor/components/Money";
@@ -13,7 +9,9 @@ import TableCellHeader from "@saleor/components/TableCellHeader";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
 import { VoucherListUrlSortField } from "@saleor/discounts/urls";
+import { canBeSorted } from "@saleor/discounts/views/VoucherList/sort";
 import { maybe, renderCollection } from "@saleor/misc";
+import { makeStyles } from "@saleor/theme";
 import { ChannelProps, ListActions, ListProps, SortPage } from "@saleor/types";
 import { DiscountValueTypeEnum } from "@saleor/types/globalTypes";
 import { getArrowDirection } from "@saleor/utils/sort";
@@ -133,6 +131,9 @@ const VoucherList: React.FC<VoucherListProps> = props => {
           }
           textAlign="right"
           onClick={() => onSort(VoucherListUrlSortField.minSpent)}
+          disabled={
+            !canBeSorted(VoucherListUrlSortField.minSpent, !!selectedChannelId)
+          }
           className={classes.colMinSpent}
         >
           <FormattedMessage
@@ -178,6 +179,9 @@ const VoucherList: React.FC<VoucherListProps> = props => {
           }
           textAlign="right"
           onClick={() => onSort(VoucherListUrlSortField.value)}
+          disabled={
+            !canBeSorted(VoucherListUrlSortField.minSpent, !!selectedChannelId)
+          }
           className={classes.colValue}
         >
           <FormattedMessage

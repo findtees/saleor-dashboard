@@ -1,27 +1,29 @@
-import Button from "@material-ui/core/Button";
-import Card from "@material-ui/core/Card";
-import IconButton from "@material-ui/core/IconButton";
-import { makeStyles } from "@material-ui/core/styles";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableFooter from "@material-ui/core/TableFooter";
-import TableRow from "@material-ui/core/TableRow";
+import {
+  Button,
+  Card,
+  IconButton,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableRow
+} from "@material-ui/core";
 import DeleteIcon from "@material-ui/icons/Delete";
 import CardTitle from "@saleor/components/CardTitle";
 import { ChannelsAvailabilityDropdown } from "@saleor/components/ChannelsAvailabilityDropdown";
 import Checkbox from "@saleor/components/Checkbox";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import Skeleton from "@saleor/components/Skeleton";
-import TableCellAvatar, {
-  AVATAR_MARGIN
-} from "@saleor/components/TableCellAvatar";
+import TableCellAvatar from "@saleor/components/TableCellAvatar";
+import { AVATAR_MARGIN } from "@saleor/components/TableCellAvatar/Avatar";
 import TableHead from "@saleor/components/TableHead";
 import TablePagination from "@saleor/components/TablePagination";
+import { makeStyles } from "@saleor/theme";
+import { mapEdgesToItems } from "@saleor/utils/maps";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { maybe, renderCollection } from "../../../misc";
-import { ChannelProps, ListActions, PageListProps } from "../../../types";
+import { ListActions, PageListProps } from "../../../types";
 import { CollectionDetails_collection } from "../../types/CollectionDetails";
 
 const useStyles = makeStyles(
@@ -55,10 +57,7 @@ const useStyles = makeStyles(
   { name: "CollectionProducts" }
 );
 
-export interface CollectionProductsProps
-  extends PageListProps,
-    ListActions,
-    ChannelProps {
+export interface CollectionProductsProps extends PageListProps, ListActions {
   collection: CollectionDetails_collection;
   channelsCount: number;
   onProductUnassign: (id: string, event: React.MouseEvent<any>) => void;
@@ -77,7 +76,6 @@ const CollectionProducts: React.FC<CollectionProductsProps> = props => {
     onProductUnassign,
     onRowClick,
     pageInfo,
-    selectedChannelId,
     isChecked,
     selected,
     toggle,
@@ -108,6 +106,7 @@ const CollectionProducts: React.FC<CollectionProductsProps> = props => {
         }
         toolbar={
           <Button
+            data-test-id="add-product"
             disabled={disabled}
             variant="text"
             color="primary"
@@ -125,7 +124,7 @@ const CollectionProducts: React.FC<CollectionProductsProps> = props => {
           colSpan={numberOfColumns}
           selected={selected}
           disabled={disabled}
-          items={maybe(() => collection.products.edges.map(edge => edge.node))}
+          items={mapEdgesToItems(collection?.products)}
           toggleAll={toggleAll}
           toolbar={toolbar}
         >
@@ -164,13 +163,9 @@ const CollectionProducts: React.FC<CollectionProductsProps> = props => {
         </TableFooter>
         <TableBody>
           {renderCollection(
-            maybe(() => collection.products.edges.map(edge => edge.node)),
+            mapEdgesToItems(collection?.products),
             product => {
               const isSelected = product ? isChecked(product.id) : false;
-              const channel =
-                product?.channelListings.find(
-                  listing => listing.channel.id === selectedChannelId
-                ) || product?.channelListings[0];
 
               return (
                 <TableRow
@@ -206,7 +201,6 @@ const CollectionProducts: React.FC<CollectionProductsProps> = props => {
                     ) : product?.channelListings !== undefined ? (
                       <ChannelsAvailabilityDropdown
                         allChannelsCount={channelsCount}
-                        currentChannel={channel}
                         channels={product?.channelListings}
                       />
                     ) : (

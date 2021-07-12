@@ -1,9 +1,7 @@
-import ClickAwayListener from "@material-ui/core/ClickAwayListener";
-import Grow from "@material-ui/core/Grow";
-import Popper from "@material-ui/core/Popper";
+import { ClickAwayListener, Grow, Popper } from "@material-ui/core";
 import { fade } from "@material-ui/core/styles/colorManipulator";
-import makeStyles from "@material-ui/core/styles/makeStyles";
 import useStateFromProps from "@saleor/hooks/useStateFromProps";
+import { makeStyles } from "@saleor/theme";
 import { toggle } from "@saleor/utils/lists";
 import React from "react";
 
@@ -45,7 +43,6 @@ const ColumnPicker: React.FC<ColumnPickerProps> = props => {
     hasMore,
     initialColumns,
     initialOpen = false,
-    loading,
     total,
     onFetchMore,
     onSave
@@ -102,7 +99,6 @@ const ColumnPicker: React.FC<ColumnPickerProps> = props => {
               <ColumnPickerContent
                 columns={columns}
                 hasMore={hasMore}
-                loading={loading}
                 selectedColumns={selectedColumns}
                 total={total}
                 onCancel={handleCancel}

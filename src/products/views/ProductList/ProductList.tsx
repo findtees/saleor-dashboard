@@ -1,5 +1,4 @@
-import DialogContentText from "@material-ui/core/DialogContentText";
-import IconButton from "@material-ui/core/IconButton";
+import { DialogContentText, IconButton } from "@material-ui/core";
 import DeleteIcon from "@material-ui/icons/Delete";
 import ActionDialog from "@saleor/components/ActionDialog";
 import useAppChannel from "@saleor/components/AppLayout/AppChannelContext";
@@ -7,6 +6,7 @@ import DeleteFilterTabDialog from "@saleor/components/DeleteFilterTabDialog";
 import SaveFilterTabDialog, {
   SaveFilterTabDialogFormData
 } from "@saleor/components/SaveFilterTabDialog";
+import { useShopLimitsQuery } from "@saleor/components/Shop/query";
 import {
   DEFAULT_INITIAL_PAGINATION_DATA,
   DEFAULT_INITIAL_SEARCH_DATA,
@@ -31,8 +31,12 @@ import {
 } from "@saleor/products/components/ProductListPage/utils";
 import {
   useAvailableInGridAttributesQuery,
-  useCountAllProducts,
-  useInitialProductFilterDataQuery,
+  useGridAttributesQuery,
+  useInitialProductFilterAttributesQuery,
+  useInitialProductFilterCategoriesQuery,
+  useInitialProductFilterCollectionsQuery,
+  useInitialProductFilterProductTypesQuery,
+  useProductCountQuery,
   useProductListQuery
 } from "@saleor/products/queries";
 import { ProductListVariables } from "@saleor/products/types/ProductList";
@@ -45,15 +49,17 @@ import {
   productUrl
 } from "@saleor/products/urls";
 import useAttributeSearch from "@saleor/searches/useAttributeSearch";
+import useAttributeValueSearch from "@saleor/searches/useAttributeValueSearch";
 import useCategorySearch from "@saleor/searches/useCategorySearch";
 import useCollectionSearch from "@saleor/searches/useCollectionSearch";
 import useProductTypeSearch from "@saleor/searches/useProductTypeSearch";
 import { ListViews } from "@saleor/types";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createFilterHandlers from "@saleor/utils/handlers/filterHandlers";
+import { mapEdgesToItems, mapNodeToChoice } from "@saleor/utils/maps";
 import { getSortUrlVariables } from "@saleor/utils/sort";
 import { useWarehouseList } from "@saleor/warehouses/queries";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import ProductListPage from "../../components/ProductListPage";
@@ -71,7 +77,7 @@ import {
   getFilterVariables,
   saveFilterTab
 } from "./filters";
-import { getSortQueryVariables } from "./sort";
+import { canBeSorted, DEFAULT_SORT_KEY, getSortQueryVariables } from "./sort";
 
 interface ProductListProps {
   params: ProductListUrlQueryParams;
@@ -89,12 +95,32 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     ListViews.PRODUCT_LIST
   );
   const intl = useIntl();
-  const { data: initialFilterData } = useInitialProductFilterDataQuery({
+  const {
+    data: initialFilterAttributes
+  } = useInitialProductFilterAttributesQuery({});
+  const {
+    data: initialFilterCategories
+  } = useInitialProductFilterCategoriesQuery({
     variables: {
-      categories: params.categories,
-      collections: params.collections,
+      categories: params.categories
+    },
+    skip: !params.categories?.length
+  });
+  const {
+    data: initialFilterCollections
+  } = useInitialProductFilterCollectionsQuery({
+    variables: {
+      collections: params.collections
+    },
+    skip: !params.collections?.length
+  });
+  const {
+    data: initialFilterProductTypes
+  } = useInitialProductFilterProductTypesQuery({
+    variables: {
       productTypes: params.productTypes
-    }
+    },
+    skip: !params.productTypes?.length
   });
   const searchCategories = useCategorySearch({
     variables: {
@@ -120,14 +146,31 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
       first: 10
     }
   });
+  const [focusedAttribute, setFocusedAttribute] = useState<string>();
+  const searchAttributeValues = useAttributeValueSearch({
+    variables: {
+      id: focusedAttribute,
+      ...DEFAULT_INITIAL_SEARCH_DATA,
+      first: 10
+    },
+    skip: !focusedAttribute
+  });
   const warehouses = useWarehouseList({
     variables: {
       first: 100
+    },
+    skip: params.action !== "export"
+  });
+  const { availableChannels } = useAppChannel(false);
+  const limitOpts = useShopLimitsQuery({
+    variables: {
+      productVariants: true
     }
   });
-  const { availableChannels, channel } = useAppChannel();
 
-  const noChannel = !channel && typeof channel !== "undefined";
+  const selectedChannel = availableChannels.find(
+    channel => channel.slug === params.channel
+  );
 
   const [openModal, closeModal] = createDialogActionHandlers<
     ProductListUrlDialog,
@@ -156,7 +199,9 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
         : 0
       : parseInt(params.activeTab, 0);
 
-  const countAllProducts = useCountAllProducts({});
+  const countAllProducts = useProductCountQuery({
+    skip: params.action !== "export"
+  });
 
   const [exportProducts, exportProductsOpts] = useProductExport({
     onCompleted: data => {
@@ -192,6 +237,32 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     params
   });
 
+  useEffect(() => {
+    const sortWithQuery = ProductListUrlSortField.rank;
+    const sortWithoutQuery =
+      params.sort === ProductListUrlSortField.rank
+        ? DEFAULT_SORT_KEY
+        : params.sort;
+    navigate(
+      productListUrl({
+        ...params,
+        asc: params.query ? undefined : params.asc,
+        sort: params.query ? sortWithQuery : sortWithoutQuery
+      })
+    );
+  }, [params.query]);
+
+  useEffect(() => {
+    if (!canBeSorted(params.sort, !!selectedChannel)) {
+      navigate(
+        productListUrl({
+          ...params,
+          sort: DEFAULT_SORT_KEY
+        })
+      );
+    }
+  }, [params]);
+
   const handleTabChange = (tab: number) => {
     reset();
     navigate(
@@ -224,17 +295,21 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
     );
 
   const paginationState = createPaginationState(settings.rowNumber, params);
-  const channelSlug = noChannel ? null : channel.slug;
-  const filter = getFilterVariables(params, channelSlug);
-  const sort = getSortQueryVariables(params, channelSlug);
+  const channelOpts = availableChannels
+    ? mapNodeToChoice(availableChannels, channel => channel.slug)
+    : null;
+  const filter = getFilterVariables(params, !!selectedChannel);
+  const sort = getSortQueryVariables(params, !!selectedChannel);
   const queryVariables = React.useMemo<ProductListVariables>(
     () => ({
       ...paginationState,
       filter,
-      sort
+      sort,
+      channel: selectedChannel?.slug
     }),
     [params, settings.rowNumber]
   );
+  // TODO: When channel is undefined we should skip detailed pricing listings
   const { data, loading, refetch } = useProductListQuery({
     displayLoader: true,
     variables: queryVariables
@@ -245,8 +320,11 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
       .filter(isAttributeColumnValue)
       .map(getAttributeIdFromColumnValue);
   }
-  const attributes = useAvailableInGridAttributesQuery({
-    variables: { first: 6, ids: filterColumnIds(settings.columns) }
+  const availableInGridAttributes = useAvailableInGridAttributesQuery({
+    variables: { first: 24 }
+  });
+  const gridAttributes = useGridAttributesQuery({
+    variables: { ids: filterColumnIds(settings.columns) }
   });
 
   const [
@@ -262,28 +340,28 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
         });
         reset();
         refetch();
+        limitOpts.refetch();
       }
     }
   });
 
   const filterOpts = getFilterOpts(
     params,
-    initialFilterData?.attributes?.edges?.map(edge => edge.node) || [],
+    mapEdgesToItems(initialFilterAttributes?.attributes) || [],
+    searchAttributeValues,
     {
-      initial:
-        initialFilterData?.categories?.edges?.map(edge => edge.node) || [],
+      initial: mapEdgesToItems(initialFilterCategories?.categories) || [],
       search: searchCategories
     },
     {
-      initial:
-        initialFilterData?.collections?.edges?.map(edge => edge.node) || [],
+      initial: mapEdgesToItems(initialFilterCollections?.collections) || [],
       search: searchCollections
     },
     {
-      initial:
-        initialFilterData?.productTypes?.edges?.map(edge => edge.node) || [],
+      initial: mapEdgesToItems(initialFilterProductTypes?.productTypes) || [],
       search: searchProductTypes
-    }
+    },
+    channelOpts
   );
 
   const { loadNextPage, loadPreviousPage, pageInfo } = paginate(
@@ -301,33 +379,32 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
           sort: params.sort
         }}
         onSort={handleSort}
-        availableInGridAttributes={maybe(
-          () => attributes.data.availableInGrid.edges.map(edge => edge.node),
+        availableInGridAttributes={
+          mapEdgesToItems(availableInGridAttributes?.data?.availableInGrid) ||
           []
-        )}
-        currencySymbol={channel?.currencyCode || ""}
+        }
+        currencySymbol={selectedChannel?.currencyCode || ""}
         currentTab={currentTab}
         defaultSettings={defaultListSettings[ListViews.PRODUCT_LIST]}
         filterOpts={filterOpts}
-        gridAttributes={maybe(
-          () => attributes.data.grid.edges.map(edge => edge.node),
-          []
-        )}
+        gridAttributes={mapEdgesToItems(gridAttributes?.data?.grid) || []}
         totalGridAttributes={maybe(
-          () => attributes.data.availableInGrid.totalCount,
+          () => availableInGridAttributes.data.availableInGrid.totalCount,
           0
         )}
         settings={settings}
-        loading={attributes.loading}
+        loading={availableInGridAttributes.loading || gridAttributes.loading}
         hasMore={maybe(
-          () => attributes.data.availableInGrid.pageInfo.hasNextPage,
+          () =>
+            availableInGridAttributes.data.availableInGrid.pageInfo.hasNextPage,
           false
         )}
         onAdd={() => navigate(productAddUrl())}
         disabled={loading}
-        products={maybe(() => data.products.edges.map(edge => edge.node))}
+        limits={limitOpts.data?.shop.limits}
+        products={mapEdgesToItems(data?.products)}
         onFetchMore={() =>
-          attributes.loadMore(
+          availableInGridAttributes.loadMore(
             (prev, next) => {
               if (
                 prev.availableInGrid.pageInfo.endCursor ===
@@ -348,7 +425,9 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
               };
             },
             {
-              after: attributes.data.availableInGrid.pageInfo.endCursor
+              after:
+                availableInGridAttributes.data.availableInGrid.pageInfo
+                  .endCursor
             }
           )
         }
@@ -376,6 +455,7 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
         toggleAll={toggleAll}
         onSearchChange={handleSearchChange}
         onFilterChange={changeFilters}
+        onFilterAttributeFocus={setFocusedAttribute}
         onTabSave={() => openModal("save-search")}
         onTabDelete={() => openModal("delete-search")}
         onTabChange={handleTabChange}
@@ -383,7 +463,7 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
         tabs={getFilterTabs().map(tab => tab.name)}
         onExport={() => openModal("export")}
         channelsCount={availableChannels?.length}
-        selectedChannelId={channel?.id}
+        selectedChannelId={selectedChannel?.id}
       />
       <ActionDialog
         open={params.action === "delete"}
@@ -412,11 +492,15 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
         </DialogContentText>
       </ActionDialog>
       <ProductExportDialog
-        attributes={(searchAttributes.result.data?.search.edges || []).map(
-          edge => edge.node
-        )}
+        attributes={
+          mapEdgesToItems(searchAttributes?.result?.data?.search) || []
+        }
         hasMore={searchAttributes.result.data?.search.pageInfo.hasNextPage}
-        loading={searchAttributes.result.loading}
+        loading={
+          searchAttributes.result.loading ||
+          countAllProducts.loading ||
+          warehouses.loading
+        }
         onFetch={searchAttributes.search}
         onFetchMore={searchAttributes.loadMore}
         open={params.action === "export"}
@@ -427,9 +511,7 @@ export const ProductList: React.FC<ProductListProps> = ({ params }) => {
           filter: data?.products.totalCount
         }}
         selectedProducts={listElements.length}
-        warehouses={
-          warehouses.data?.warehouses.edges.map(edge => edge.node) || []
-        }
+        warehouses={mapEdgesToItems(warehouses?.data?.warehouses) || []}
         channels={availableChannels}
         onClose={closeModal}
         onSubmit={data =>

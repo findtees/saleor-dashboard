@@ -1,200 +1,223 @@
-import Utils from "./utils/Utils";
+import { stringify } from "../support/format/formatJson";
+import { getValueWithDefault, getVariantsListIds } from "./utils/Utils";
 
-class Product {
-  utils = new Utils();
-  getFirstProducts(first, search) {
-    const filter = search
-      ? `, filter:{
+export function getFirstProducts(first, search) {
+  const filter = search
+    ? `, filter:{
       search:"${search}"
     }`
-      : "";
-    const query = `query{
-            products(first:${first}${filter}){
-              edges{
-                node{
-                  id
-                  name
-                  variants{
-                    id
-                  }
-                }
-              }
-            }
-          `;
-    return cy
-      .sendRequestWithQuery(query)
-      .then(resp => resp.body.data.products.edges);
-  }
-
-  updateChannelInProduct({
-    productId,
-    channelId,
-    isPublished = true,
-    isAvailableForPurchase = true,
-    visibleInListings = true
-  }) {
-    const mutation = `mutation{
-              productChannelListingUpdate(id:"${productId}",
-              input:{
-                addChannels:{
-                channelId:"${channelId}"
-                isPublished:${isPublished}
-                isAvailableForPurchase:${isAvailableForPurchase}
-                visibleInListings:${visibleInListings}
-                }
-              }){
-                product{
-                  id
-                  name
-                }
-              }
-            }`;
-    cy.sendRequestWithQuery(mutation);
-  }
-
-  updateChannelPriceInVariant(variantId, channelId) {
-    const mutation = `mutation{
-  productVariantChannelListingUpdate(id: "${variantId}", input: {
-    channelId: "${channelId}"
-          price: 10
-          costPrice: 10
-  }){
-    productChannelListingErrors{
-      message
-    }
-  }
-} `;
-    return cy.sendRequestWithQuery(mutation);
-  }
-  createProduct(attributeId, name, productType, category) {
-    const mutation = `mutation{
-      productCreate(input:{
-        attributes:[{
-          id:"${attributeId}"
-        }]
-        name:"${name}"
-        productType:"${productType}"
-        category:"${category}"
-      }){
-        product{
+    : "";
+  const query = `query{
+    products(first:${first}${filter}){
+      edges{
+        node{
           id
-        }
-        productErrors{
-          field
-          message
+          name
+          variants{
+            id
+          }
         }
       }
     }`;
-    return cy.sendRequestWithQuery(mutation);
+  return cy
+    .sendRequestWithQuery(query)
+    .then(resp => resp.body.data.products.edges);
+}
+export function updateProduct(productId, input) {
+  const mutation = `mutation {
+    productUpdate(id:"${productId}", input:${stringify(input)} ){
+      productErrors{
+        field
+        message
+      }
+      product{
+        id
+      }
+    }
   }
+  `;
+  return cy
+    .sendRequestWithQuery(mutation)
+    .its("body.data.productUpdate.product");
+}
 
-  createVariant(
-    productId,
-    sku,
-    warehouseId,
-    quantity,
+export function updateChannelInProduct({
+  productId,
+  channelId,
+  variantsIdsToAdd = "[]",
+  variantsIdsToRemove = "[]",
+  isPublished = true,
+  isAvailableForPurchase = true,
+  visibleInListings = true
+}) {
+  const mutation = `mutation{
+    productChannelListingUpdate(id:"${productId}",
+    input:{
+      updateChannels:{ 
+        channelId:"${channelId}"
+        isPublished:${isPublished}
+        isAvailableForPurchase:${isAvailableForPurchase}
+        visibleInListings:${visibleInListings}
+        addVariants:${variantsIdsToAdd}
+        removeVariants:${variantsIdsToRemove}
+      }
+    }){
+      product{
+        id
+        name
+      }
+    }
+  }`;
+  return cy.sendRequestWithQuery(mutation);
+}
+
+export function updateChannelPriceInVariant(variantId, channelId) {
+  const mutation = `mutation{
+    productVariantChannelListingUpdate(id: "${variantId}", input: {
+      channelId: "${channelId}"
+      price: 10
+      costPrice: 10
+    }){
+      productChannelListingErrors{
+        message
+      }
+    }
+  } `;
+  return cy.sendRequestWithQuery(mutation);
+}
+export function createProduct({
+  attributeId,
+  name,
+  productTypeId,
+  categoryId,
+  collectionId,
+  description
+}) {
+  const collection = getValueWithDefault(
+    collectionId,
+    `collections:["${collectionId}"]`
+  );
+  const descriptionLine = getValueWithDefault(
+    description,
+    `description:"{\\"blocks\\":[{\\"type\\":\\"paragraph\\",\\"data\\":{\\"text\\":\\"${description}\\"}}]}"`
+  );
+  const categoryLine = getValueWithDefault(
+    categoryId,
+    `category:"${categoryId}"`
+  );
+
+  const mutation = `mutation{
+    productCreate(input:{
+      attributes:[{
+        id:"${attributeId}"
+      }]
+      name:"${name}"
+      slug:"${name}"
+      seo:{title:"${name}" description:""}
+      productType:"${productTypeId}"
+      ${categoryLine}
+      ${collection}
+      ${descriptionLine}
+    }){
+      product{
+        id
+        name
+      }
+      productErrors{
+        field
+        message
+      }
+    }
+  }`;
+  return cy
+    .sendRequestWithQuery(mutation)
+    .its("body.data.productCreate.product");
+}
+
+export function createVariant({
+  productId,
+  sku,
+  warehouseId,
+  quantityInWarehouse,
+  channelId,
+  attributeId,
+  price = 1,
+  costPrice = 1,
+  trackInventory = true,
+  weight = 1
+}) {
+  const channelListings = getValueWithDefault(
     channelId,
-    price = 1,
-    costPrice = 1
-  ) {
-    const channelListings = this.utils.getValueWithDefault(
-      channelId,
-      `channelListings:{
+    `channelListings:{
       channelId:"${channelId}"
       price:"${price}"
       costPrice:"${costPrice}"
     }`
-    );
+  );
 
-    const stocks = this.utils.getValueWithDefault(
-      warehouseId,
-      `stocks:{
+  const stocks = getValueWithDefault(
+    warehouseId,
+    `stocks:{
       warehouse:"${warehouseId}"
-      quantity:${quantity}
+      quantity:${quantityInWarehouse}
     }`
-    );
+  );
 
-    const mutation = `mutation{
-        productVariantBulkCreate(product: "${productId}", variants: {
-          attributes: []
-          sku: "${sku}"
-          ${channelListings}
-          ${stocks}
-        }) {
-          productVariants{
-            id
-            name
-          }
-          bulkProductErrors{
-            field
-            message
-          }
-        }
-      }`;
-    return cy.sendRequestWithQuery(mutation);
-  }
-
-  createTypeProduct(name, attributeId, slug = name) {
-    const mutation = `mutation{
-  productTypeCreate(input: {
-    name: "${name}"
-        slug: "${slug}"
-        isShippingRequired: true
-        productAttributes: "${attributeId}"
-  }){
-    productErrors{
-      field
-      message
-    }
-    productType{
-      id
-    }
-  }
-} `;
-    return cy.sendRequestWithQuery(mutation);
-  }
-
-  deleteProduct(productId) {
-    const mutation = `mutation{
-  productDelete(id: "${productId}"){
-    productErrors{
-      field
-      message
-    }
-  }
-} `;
-    return cy.sendRequestWithQuery(mutation);
-  }
-
-  getProductTypes(first, search) {
-    const query = `query{
-      productTypes(first:${first}, filter:{
-        search:"${search}"
-      }){
-        edges{
-          node{
-            id
-            name
-          }
-        }
+  const mutation = `mutation{
+    productVariantBulkCreate(product: "${productId}", variants: {
+      attributes: [{
+        id:"${attributeId}"
+        values: ["value"]
+      }]
+      weight: ${weight}
+      sku: "${sku}"
+      ${channelListings}
+      trackInventory:${trackInventory}
+      ${stocks}
+    }) {
+      productVariants{
+        id
+        name
       }
-    }`;
-    return cy
-      .sendRequestWithQuery(query)
-      .then(resp => resp.body.data.productTypes.edges);
-  }
-
-  deleteProductType(productTypeId) {
-    const mutation = `mutation{
-      productTypeDelete(id:"${productTypeId}"){
-        productErrors{
-          field
-          message
-        }
+      bulkProductErrors{
+        field
+        message
       }
-    }`;
-    return cy.sendRequestWithQuery(mutation);
-  }
+    }
+  }`;
+  return cy
+    .sendRequestWithQuery(mutation)
+    .its("body.data.productVariantBulkCreate.productVariants");
 }
 
-export default Product;
+export function deleteProduct(productId) {
+  const mutation = `mutation{
+    productDelete(id: "${productId}"){
+      productErrors{
+        field
+        message
+      }
+    }
+  } `;
+  return cy.sendRequestWithQuery(mutation);
+}
+
+export function getVariants(variantsList) {
+  const variantsIds = getVariantsListIds(variantsList);
+  const query = `query{
+    productVariants(first:100 ids:[${variantsIds}]){
+      edges{
+        node{
+          stocks{
+            warehouse{
+              id
+            }
+            quantity
+            quantityAllocated
+          }
+        }
+      }
+    }
+  }`;
+  return cy.sendRequestWithQuery(query).its("body.data.productVariants");
+}

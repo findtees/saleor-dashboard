@@ -1,4 +1,7 @@
-import { attributeValueFragment } from "@saleor/fragments/attributes";
+import {
+  attributeValueFragment,
+  attributeValueListFragment
+} from "@saleor/fragments/attributes";
 import { pageInfoFragment } from "@saleor/fragments/pageInfo";
 import {
   fragmentVariant,
@@ -10,9 +13,16 @@ import {
 import { taxTypeFragment } from "@saleor/fragments/taxes";
 import { warehouseFragment } from "@saleor/fragments/warehouses";
 import makeQuery from "@saleor/hooks/makeQuery";
+import {
+  ProductMediaById,
+  ProductMediaByIdVariables
+} from "@saleor/products/types/ProductMediaById";
 import gql from "graphql-tag";
 
-import { CountAllProducts } from "./types/CountAllProducts";
+import {
+  AvailableInGridAttributes,
+  AvailableInGridAttributesVariables
+} from "./types/AvailableInGridAttributes";
 import {
   CreateMultipleVariantsData,
   CreateMultipleVariantsDataVariables
@@ -21,19 +31,26 @@ import {
   GridAttributes,
   GridAttributesVariables
 } from "./types/GridAttributes";
+import { InitialProductFilterAttributes } from "./types/InitialProductFilterAttributes";
 import {
-  InitialProductFilterData,
-  InitialProductFilterDataVariables
-} from "./types/InitialProductFilterData";
+  InitialProductFilterCategories,
+  InitialProductFilterCategoriesVariables
+} from "./types/InitialProductFilterCategories";
+import {
+  InitialProductFilterCollections,
+  InitialProductFilterCollectionsVariables
+} from "./types/InitialProductFilterCollections";
+import {
+  InitialProductFilterProductTypes,
+  InitialProductFilterProductTypesVariables
+} from "./types/InitialProductFilterProductTypes";
+import { ProductCount, ProductCountVariables } from "./types/ProductCount";
 import {
   ProductDetails,
   ProductDetailsVariables
 } from "./types/ProductDetails";
-import {
-  ProductImageById,
-  ProductImageByIdVariables
-} from "./types/ProductImageById";
 import { ProductList, ProductListVariables } from "./types/ProductList";
+import { ProductType, ProductTypeVariables } from "./types/ProductType";
 import {
   ProductVariantCreateData,
   ProductVariantCreateDataVariables
@@ -43,26 +60,31 @@ import {
   ProductVariantDetailsVariables
 } from "./types/ProductVariantDetails";
 
-const initialProductFilterDataQuery = gql`
-  query InitialProductFilterData(
-    $categories: [ID!]
-    $collections: [ID!]
-    $productTypes: [ID!]
-  ) {
-    attributes(first: 100, filter: { filterableInDashboard: true }) {
+const initialProductFilterAttributesQuery = gql`
+  query InitialProductFilterAttributes {
+    attributes(
+      first: 100
+      filter: { filterableInDashboard: true, type: PRODUCT_TYPE }
+    ) {
       edges {
         node {
           id
           name
+          inputType
           slug
-          values {
-            id
-            name
-            slug
-          }
         }
       }
     }
+  }
+`;
+
+export const useInitialProductFilterAttributesQuery = makeQuery<
+  InitialProductFilterAttributes,
+  never
+>(initialProductFilterAttributesQuery);
+
+const initialProductFilterCategoriesQuery = gql`
+  query InitialProductFilterCategories($categories: [ID!]) {
     categories(first: 100, filter: { ids: $categories }) {
       edges {
         node {
@@ -71,6 +93,15 @@ const initialProductFilterDataQuery = gql`
         }
       }
     }
+  }
+`;
+export const useInitialProductFilterCategoriesQuery = makeQuery<
+  InitialProductFilterCategories,
+  InitialProductFilterCategoriesVariables
+>(initialProductFilterCategoriesQuery);
+
+const initialProductFilterCollectionsQuery = gql`
+  query InitialProductFilterCollections($collections: [ID!]) {
     collections(first: 100, filter: { ids: $collections }) {
       edges {
         node {
@@ -79,6 +110,15 @@ const initialProductFilterDataQuery = gql`
         }
       }
     }
+  }
+`;
+export const useInitialProductFilterCollectionsQuery = makeQuery<
+  InitialProductFilterCollections,
+  InitialProductFilterCollectionsVariables
+>(initialProductFilterCollectionsQuery);
+
+const initialProductFilterProductTypesQuery = gql`
+  query InitialProductFilterProductTypes($productTypes: [ID!]) {
     productTypes(first: 100, filter: { ids: $productTypes }) {
       edges {
         node {
@@ -89,10 +129,10 @@ const initialProductFilterDataQuery = gql`
     }
   }
 `;
-export const useInitialProductFilterDataQuery = makeQuery<
-  InitialProductFilterData,
-  InitialProductFilterDataVariables
->(initialProductFilterDataQuery);
+export const useInitialProductFilterProductTypesQuery = makeQuery<
+  InitialProductFilterProductTypes,
+  InitialProductFilterProductTypesVariables
+>(initialProductFilterProductTypesQuery);
 
 const productListQuery = gql`
   ${productFragment}
@@ -103,6 +143,7 @@ const productListQuery = gql`
     $last: Int
     $before: String
     $filter: ProductFilterInput
+    $channel: String
     $sort: ProductOrder
   ) {
     products(
@@ -112,6 +153,7 @@ const productListQuery = gql`
       last: $last
       filter: $filter
       sortBy: $sort
+      channel: $channel
     ) {
       edges {
         node {
@@ -140,21 +182,30 @@ export const useProductListQuery = makeQuery<ProductList, ProductListVariables>(
   productListQuery
 );
 
-const countAllProductsQuery = gql`
-  query CountAllProducts {
-    products {
+const productCountQuery = gql`
+  query ProductCount($filter: ProductFilterInput, $channel: String) {
+    products(filter: $filter, channel: $channel) {
       totalCount
     }
   }
 `;
-export const useCountAllProducts = makeQuery<CountAllProducts, null>(
-  countAllProductsQuery
-);
+
+export const useProductCountQuery = makeQuery<
+  ProductCount,
+  ProductCountVariables
+>(productCountQuery);
 
 const productDetailsQuery = gql`
   ${productFragmentDetails}
   ${taxTypeFragment}
-  query ProductDetails($id: ID!, $channel: String) {
+  query ProductDetails(
+    $id: ID!
+    $channel: String
+    $firstValues: Int
+    $afterValues: String
+    $lastValues: Int
+    $beforeValues: String
+  ) {
     product(id: $id, channel: $channel) {
       ...Product
     }
@@ -168,14 +219,56 @@ export const useProductDetails = makeQuery<
   ProductDetailsVariables
 >(productDetailsQuery);
 
-export const useProductDetailsQuery = makeQuery<
-  ProductDetails,
-  ProductDetailsVariables
->(productDetailsQuery);
+const productTypeQuery = gql`
+  ${taxTypeFragment}
+  ${attributeValueListFragment}
+  query ProductType(
+    $id: ID!
+    $firstValues: Int
+    $afterValues: String
+    $lastValues: Int
+    $beforeValues: String
+  ) {
+    productType(id: $id) {
+      id
+      name
+      hasVariants
+      productAttributes {
+        id
+        inputType
+        entityType
+        slug
+        name
+        valueRequired
+        unit
+        choices(
+          first: $firstValues
+          after: $afterValues
+          last: $lastValues
+          before: $beforeValues
+        ) {
+          ...AttributeValueListFragment
+        }
+      }
+      taxType {
+        ...TaxTypeFragment
+      }
+    }
+  }
+`;
+export const useProductTypeQuery = makeQuery<ProductType, ProductTypeVariables>(
+  productTypeQuery
+);
 
 const productVariantQuery = gql`
   ${fragmentVariant}
-  query ProductVariantDetails($id: ID!) {
+  query ProductVariantDetails(
+    $id: ID!
+    $firstValues: Int
+    $afterValues: String
+    $lastValues: Int
+    $beforeValues: String
+  ) {
     productVariant(id: $id) {
       ...ProductVariant
     }
@@ -188,10 +281,16 @@ export const useProductVariantQuery = makeQuery<
 
 const productVariantCreateQuery = gql`
   ${variantAttributeFragment}
-  query ProductVariantCreateData($id: ID!) {
+  query ProductVariantCreateData(
+    $id: ID!
+    $firstValues: Int
+    $afterValues: String
+    $lastValues: Int
+    $beforeValues: String
+  ) {
     product(id: $id) {
       id
-      images {
+      media {
         id
         sortOrder
         url
@@ -224,9 +323,10 @@ const productVariantCreateQuery = gql`
         id
         name
         sku
-        images {
+        media {
           id
           url
+          type
         }
       }
     }
@@ -237,31 +337,36 @@ export const useProductVariantCreateQuery = makeQuery<
   ProductVariantCreateDataVariables
 >(productVariantCreateQuery);
 
-const productImageQuery = gql`
-  query ProductImageById($productId: ID!, $imageId: ID!) {
+const productMediaQuery = gql`
+  query ProductMediaById($productId: ID!, $mediaId: ID!) {
     product(id: $productId) {
       id
       name
-      mainImage: imageById(id: $imageId) {
+      mainImage: mediaById(id: $mediaId) {
         id
         alt
         url
+        type
+        oembedData
       }
-      images {
+      media {
         id
         url(size: 48)
+        alt
+        type
+        oembedData
       }
     }
   }
 `;
-export const useProductImageQuery = makeQuery<
-  ProductImageById,
-  ProductImageByIdVariables
->(productImageQuery);
+export const useProductMediaQuery = makeQuery<
+  ProductMediaById,
+  ProductMediaByIdVariables
+>(productMediaQuery);
 
 const availableInGridAttributes = gql`
   ${pageInfoFragment}
-  query GridAttributes($first: Int!, $after: String, $ids: [ID!]!) {
+  query AvailableInGridAttributes($first: Int!, $after: String) {
     availableInGrid: attributes(
       first: $first
       after: $after
@@ -282,7 +387,15 @@ const availableInGridAttributes = gql`
       }
       totalCount
     }
+  }
+`;
+export const useAvailableInGridAttributesQuery = makeQuery<
+  AvailableInGridAttributes,
+  AvailableInGridAttributesVariables
+>(availableInGridAttributes);
 
+const gridAttributes = gql`
+  query GridAttributes($ids: [ID!]!) {
     grid: attributes(first: 25, filter: { ids: $ids }) {
       edges {
         node {
@@ -293,15 +406,21 @@ const availableInGridAttributes = gql`
     }
   }
 `;
-export const useAvailableInGridAttributesQuery = makeQuery<
+export const useGridAttributesQuery = makeQuery<
   GridAttributes,
   GridAttributesVariables
->(availableInGridAttributes);
+>(gridAttributes);
 
 const createMultipleVariantsData = gql`
   ${productVariantAttributesFragment}
   ${warehouseFragment}
-  query CreateMultipleVariantsData($id: ID!) {
+  query CreateMultipleVariantsData(
+    $id: ID!
+    $firstValues: Int
+    $afterValues: String
+    $lastValues: Int
+    $beforeValues: String
+  ) {
     product(id: $id) {
       ...ProductVariantAttributesFragment
     }

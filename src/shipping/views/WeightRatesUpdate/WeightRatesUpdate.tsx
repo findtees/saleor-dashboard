@@ -1,5 +1,4 @@
-import Button from "@material-ui/core/Button";
-import { useChannelsList } from "@saleor/channels/queries";
+import { Button } from "@material-ui/core";
 import {
   createShippingChannelsFromRate,
   createSortedShippingChannels
@@ -17,6 +16,10 @@ import usePaginator, {
 } from "@saleor/hooks/usePaginator";
 import { sectionNames } from "@saleor/intl";
 import { commonMessages } from "@saleor/intl";
+import {
+  getById,
+  getByUnmatchingId
+} from "@saleor/orders/components/OrderReturnPage/utils";
 import useProductSearch from "@saleor/searches/useProductSearch";
 import DeleteShippingRateDialog from "@saleor/shipping/components/DeleteShippingRateDialog";
 import ShippingMethodProductsAddDialog from "@saleor/shipping/components/ShippingMethodProductsAddDialog";
@@ -43,7 +46,12 @@ import {
   shippingWeightRatesEditUrl,
   shippingZoneUrl
 } from "@saleor/shipping/urls";
-import filterPostalCodes from "@saleor/shipping/views/utils";
+import postalCodesReducer from "@saleor/shipping/views/reducer";
+import {
+  filterPostalCodes,
+  getPostalCodeRuleByMinMax,
+  getRuleObject
+} from "@saleor/shipping/views/utils";
 import { MinMax } from "@saleor/types";
 import {
   PostalCodeRuleInclusionTypeEnum,
@@ -51,6 +59,7 @@ import {
 } from "@saleor/types/globalTypes";
 import createDialogActionHandlers from "@saleor/utils/handlers/dialogActionHandlers";
 import createMetadataUpdateHandler from "@saleor/utils/handlers/metadataUpdateHandler";
+import { mapEdgesToItems } from "@saleor/utils/maps";
 import {
   useMetadataUpdate,
   usePrivateMetadataUpdate
@@ -81,53 +90,61 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
     variables: { id, ...paginationState }
   });
 
+  const channelsData = data?.shippingZone?.channels;
+
+  const rate = data?.shippingZone?.shippingMethods?.find(getById(rateId));
+
   const [openModal, closeModal] = createDialogActionHandlers<
     ShippingRateUrlDialog,
     ShippingRateUrlQueryParams
   >(navigate, params => shippingWeightRatesEditUrl(id, rateId, params), params);
 
-  const [codesToDelete, setCodesToDelete] = React.useState([]);
-  const [havePostalCodesChanged, setHavePostalCodesChanged] = React.useState(
-    false
-  );
-  const [originalCodes, setOriginalCodes] = React.useState([]);
-  const [inclusionType, setInclusionType] = React.useState(
-    PostalCodeRuleInclusionTypeEnum.EXCLUDE
-  );
+  const [state, dispatch] = React.useReducer(postalCodesReducer, {
+    codesToDelete: [],
+    havePostalCodesChanged: false,
+    inclusionType: rate?.postalCodeRules[0]?.inclusionType,
+    originalCodes: [],
+    postalCodeRules: rate?.postalCodeRules || []
+  });
+
+  const postalCodeRulesLoaded =
+    !loading &&
+    !state.postalCodeRules?.length &&
+    !state.codesToDelete?.length &&
+    rate?.postalCodeRules?.length;
+
+  if (postalCodeRulesLoaded) {
+    dispatch({ postalCodeRules: rate.postalCodeRules });
+  }
 
   const onPostalCodeInclusionChange = (
     inclusion: PostalCodeRuleInclusionTypeEnum
   ) => {
-    setInclusionType(inclusion);
-    setCodesToDelete(
-      rate.postalCodeRules
-        .filter(code => code.id !== undefined)
-        .map(code => code.id)
-    );
-    setHavePostalCodesChanged(true);
-    rate.postalCodeRules = [];
+    dispatch({
+      codesToDelete: rate.postalCodeRules.map(code => code.id),
+      havePostalCodesChanged: true,
+      inclusionType: inclusion,
+      postalCodeRules: []
+    });
   };
 
   const onPostalCodeAssign = (rule: MinMax) => {
-    if (!originalCodes.length) {
-      setOriginalCodes([...rate.postalCodeRules]);
+    if (!state.originalCodes.length) {
+      dispatch({ originalCodes: rate.postalCodeRules });
     }
+
     if (
-      rate.postalCodeRules.filter(
-        item => item.start === rule.min && item.end === rule.max
-      ).length > 0
+      state.postalCodeRules.filter(getPostalCodeRuleByMinMax(rule)).length > 0
     ) {
       closeModal();
       return;
     }
-    const newCode = {
-      __typename: undefined,
-      end: rule.max,
-      id: undefined,
-      inclusionType,
-      start: rule.min
-    };
-    rate.postalCodeRules.push(newCode);
+
+    const newCode = getRuleObject(rule, state.inclusionType);
+    dispatch({
+      havePostalCodesChanged: true,
+      postalCodeRules: [...state.postalCodeRules, newCode]
+    });
     closeModal();
   };
 
@@ -136,10 +153,6 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
     search: productsSearch,
     result: productsSearchOpts
   } = useProductSearch({ variables: DEFAULT_INITIAL_SEARCH_DATA });
-
-  const rate = data?.shippingZone?.shippingMethods.find(
-    rate => rate.id === rateId
-  );
 
   const { isSelected, listElements, reset, toggle, toggleAll } = useBulkActions(
     []
@@ -151,7 +164,6 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
     params
   );
 
-  const { data: channelsData } = useChannelsList({});
   const [
     updateShippingMethodChannelListing,
     updateShippingMethodChannelListingOpts
@@ -183,7 +195,7 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
   const shippingChannels = createShippingChannelsFromRate(
     rate?.channelListings
   );
-  const allChannels = createSortedShippingChannels(channelsData?.channels);
+  const allChannels = createSortedShippingChannels(channelsData);
 
   const {
     channelListElements,
@@ -227,15 +239,14 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
         data,
         id,
         rateId,
-        rate.postalCodeRules,
-        codesToDelete
+        state.postalCodeRules,
+        state.codesToDelete
       )
     });
-    setCodesToDelete([]);
-    setHavePostalCodesChanged(false);
     const errors = response.data.shippingPriceUpdate.errors;
     if (errors.length === 0) {
       handleSuccess();
+      dispatch({ havePostalCodesChanged: false });
       updateShippingMethodChannelListing({
         variables: getShippingMethodChannelVariables(
           rateId,
@@ -251,14 +262,19 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
 
   const onPostalCodeUnassign = code => {
     if (code.id !== undefined) {
-      setCodesToDelete([...codesToDelete, code.id]);
-      rate.postalCodeRules = rate.postalCodeRules.filter(
-        rule => rule.id !== code.id
-      );
+      dispatch({
+        codesToDelete: [...state.codesToDelete, code.id],
+        havePostalCodesChanged: true,
+        postalCodeRules: state.postalCodeRules.filter(
+          getByUnmatchingId(code.id)
+        )
+      });
     } else {
-      rate.postalCodeRules = filterPostalCodes(rate.postalCodeRules, code);
+      dispatch({
+        havePostalCodesChanged: true,
+        postalCodeRules: filterPostalCodes(state.postalCodeRules, code)
+      });
     }
-    setHavePostalCodesChanged(true);
   };
 
   const handleSubmit = createMetadataUpdateHandler(
@@ -327,9 +343,9 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
         loading={productsSearchOpts.loading}
         open={params.action === "assign-product"}
         hasMore={productsSearchOpts.data?.search?.pageInfo.hasNextPage}
-        products={productsSearchOpts.data?.search?.edges
-          .map(edge => edge.node)
-          .filter(suggestedProduct => suggestedProduct.id)}
+        products={mapEdgesToItems(productsSearchOpts?.data?.search)?.filter(
+          suggestedProduct => suggestedProduct.id
+        )}
         onClose={closeModal}
         onFetch={productsSearch}
         onFetchMore={loadMore}
@@ -346,7 +362,7 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
           assignProductOpts?.status === "loading"
         }
         hasChannelChanged={shippingChannels?.length !== currentChannels?.length}
-        havePostalCodesChanged={havePostalCodesChanged}
+        havePostalCodesChanged={state.havePostalCodesChanged}
         saveButtonBarState={updateShippingRateOpts.status}
         onDelete={() => openModal("remove")}
         onSubmit={handleSubmit}
@@ -368,6 +384,7 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
         toggleAll={toggleAll}
         onNextPage={loadNextPage}
         onPreviousPage={loadPreviousPage}
+        postalCodeRules={state.postalCodeRules}
         pageInfo={pageInfo}
         toolbar={
           <Button color="primary" onClick={() => openModal("unassign-product")}>
@@ -384,10 +401,7 @@ export const WeightRatesUpdate: React.FC<WeightRatesUpdateProps> = ({
       <ShippingZonePostalCodeRangeDialog
         confirmButtonState={"default"}
         onClose={closeModal}
-        onSubmit={code => {
-          onPostalCodeAssign(code);
-          setHavePostalCodesChanged(true);
-        }}
+        onSubmit={code => onPostalCodeAssign(code)}
         open={params.action === "add-range"}
       />
     </>

@@ -1,6 +1,4 @@
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
-import TextField from "@material-ui/core/TextField";
+import { Card, CardContent, TextField } from "@material-ui/core";
 import CardTitle from "@saleor/components/CardTitle";
 import FormSpacer from "@saleor/components/FormSpacer";
 import { ShopErrorFragment } from "@saleor/fragments/types/ShopErrorFragment";
@@ -52,6 +50,11 @@ const SiteSettingsDetails: React.FC<SiteSettingsDetailsProps> = ({
           }
           value={data.name}
           onChange={onChange}
+          InputProps={{
+            inputProps: {
+              autoComplete: "none"
+            }
+          }}
         />
         <FormSpacer />
         <TextField
@@ -65,6 +68,11 @@ const SiteSettingsDetails: React.FC<SiteSettingsDetailsProps> = ({
           helperText={getShopErrorMessage(formErrors.domain, intl)}
           value={data.domain}
           onChange={onChange}
+          InputProps={{
+            inputProps: {
+              autoComplete: "none"
+            }
+          }}
         />
         <FormSpacer />
         <TextField
@@ -84,6 +92,11 @@ const SiteSettingsDetails: React.FC<SiteSettingsDetailsProps> = ({
           }
           value={data.description}
           onChange={onChange}
+          InputProps={{
+            inputProps: {
+              autoComplete: "none"
+            }
+          }}
         />
       </CardContent>
     </Card>
